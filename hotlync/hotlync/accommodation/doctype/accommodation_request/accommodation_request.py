@@ -64,6 +64,14 @@ class AccommodationRequest(Document):
 		_assert_single_open(self)
 		self._apply_transition()
 
+	def on_update(self):
+		try:
+			from hotlync.accommodation.notify import notify_request
+
+			notify_request(self)
+		except Exception:
+			return
+
 	def _keep_in_scope(self):
 		roles = set(frappe.get_roles())
 		if roles & PRIVILEGED_ROLES:

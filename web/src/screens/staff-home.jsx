@@ -4,6 +4,7 @@ import { friendlyName } from '../format.js'
 import { Icon } from '../icons.jsx'
 import { MaintenanceDesk } from './maintenance.jsx'
 import { RequestDesk } from './requests.jsx'
+import { NoticeList } from '../notices.jsx'
 import { StatusPill } from '../ui.jsx'
 
 export function StaffHome ({ user, onLogout }) {
@@ -120,6 +121,10 @@ export function StaffHome ({ user, onLogout }) {
 					{!loading && !error && stay?.mapped && !current && (
 						<p className="text-sm text-slate-500">You have no checked-in stay.</p>
 					)}
+				</section>
+				<section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+					<h2 className="mb-3 text-sm font-semibold text-slate-900">Notices</h2>
+					<NoticeList />
 				</section>
 				{stay?.mapped && (
 					<section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">

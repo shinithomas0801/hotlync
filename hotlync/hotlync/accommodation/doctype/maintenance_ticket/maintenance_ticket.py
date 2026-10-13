@@ -62,6 +62,14 @@ class MaintenanceTicket(Document):
 		self._lock_details()
 		self._apply_transition()
 
+	def on_update(self):
+		try:
+			from hotlync.accommodation.notify import notify_ticket
+
+			notify_ticket(self)
+		except Exception:
+			return
+
 	def _keep_in_scope(self):
 		roles = set(frappe.get_roles())
 		if roles & PRIVILEGED_ROLES:

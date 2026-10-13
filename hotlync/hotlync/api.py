@@ -848,6 +848,13 @@ def record_key_incident(name, status, note=None, replaced_by=None):
 	return record_incident(name, status, note=note, replaced_by=replaced_by)
 
 
+@frappe.whitelist()
+def get_notices():
+	from hotlync.accommodation.notify import get_notices as list_notices
+
+	return list_notices()
+
+
 def _occupants_by_bed():
 	rows = frappe.get_all(
 		"Accommodation Allocation",

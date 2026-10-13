@@ -9,6 +9,7 @@ import {
 	todayIso,
 } from '../format.js'
 import { Icon } from '../icons.jsx'
+import { NoticeList } from '../notices.jsx'
 import { Panel, StatusPill } from '../ui.jsx'
 
 export function Dashboard ({ user, version, onOpen }) {
@@ -286,7 +287,7 @@ export function Dashboard ({ user, version, onOpen }) {
 						<LaterNote text="No facility bookings in this phase." />
 					</Panel>
 					<Panel title="Recent Notifications">
-						<LaterNote text="No notifications yet." />
+						<NoticeList />
 					</Panel>
 				</div>
 			</div>
