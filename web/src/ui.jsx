@@ -29,12 +29,12 @@ export function Notice ({ error, message }) {
 	)
 }
 
-export function PrimaryButton ({ children, disabled, type = 'submit' }) {
+export function PrimaryButton ({ children, disabled, type = 'submit', className = '' }) {
 	return (
 		<button
 			type={type}
 			disabled={disabled}
-			className="rounded-lg bg-[#2563EB] px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+			className={`rounded-lg bg-[#2563EB] px-4 py-2 text-sm font-medium text-white disabled:opacity-50 ${className}`}
 		>
 			{children}
 		</button>
@@ -70,6 +70,11 @@ export function StatusPill ({ status }) {
 		Completed: 'bg-slate-100 text-slate-600',
 		Transferred: 'bg-violet-50 text-violet-600',
 		Draft: 'bg-amber-50 text-amber-700',
+		Submitted: 'bg-sky-50 text-sky-700',
+		'Changes Requested': 'bg-amber-50 text-amber-700',
+		Approved: 'bg-emerald-50 text-emerald-700',
+		Rejected: 'bg-rose-50 text-rose-600',
+		Cancelled: 'bg-slate-100 text-slate-500',
 	}
 	return (
 		<span

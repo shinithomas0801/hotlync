@@ -604,6 +604,83 @@ def _stay_rows(property_names, filters, order_by):
 	return rows
 
 
+@frappe.whitelist()
+def get_requests(name=None, status=None):
+	from hotlync.accommodation.doctype.accommodation_request.accommodation_request import (
+		get_requests as list_requests,
+	)
+
+	return list_requests(name=name, status=status)
+
+
+@frappe.whitelist()
+def save_request(
+	name=None,
+	request_type=None,
+	property=None,
+	employee=None,
+	reason=None,
+	preferred_date=None,
+	requested_bed=None,
+	visitor_name=None,
+	visit_start=None,
+	visit_end=None,
+	family_member_name=None,
+	relationship=None,
+	stay_start=None,
+	stay_end=None,
+	intended_checkout_date=None,
+):
+	from hotlync.accommodation.doctype.accommodation_request.accommodation_request import (
+		save_request as persist_request,
+	)
+
+	return persist_request(
+		name=name,
+		request_type=request_type,
+		property=property,
+		employee=employee,
+		reason=reason,
+		preferred_date=preferred_date,
+		requested_bed=requested_bed,
+		visitor_name=visitor_name,
+		visit_start=visit_start,
+		visit_end=visit_end,
+		family_member_name=family_member_name,
+		relationship=relationship,
+		stay_start=stay_start,
+		stay_end=stay_end,
+		intended_checkout_date=intended_checkout_date,
+	)
+
+
+@frappe.whitelist()
+def submit_request(name):
+	from hotlync.accommodation.doctype.accommodation_request.accommodation_request import (
+		submit_request as send_request,
+	)
+
+	return send_request(name)
+
+
+@frappe.whitelist()
+def cancel_request(name, comment=None):
+	from hotlync.accommodation.doctype.accommodation_request.accommodation_request import (
+		cancel_request as withdraw_request,
+	)
+
+	return withdraw_request(name, comment=comment)
+
+
+@frappe.whitelist()
+def decide_request(name, action, comment=None):
+	from hotlync.accommodation.doctype.accommodation_request.accommodation_request import (
+		decide_request as record_decision,
+	)
+
+	return record_decision(name, action, comment=comment)
+
+
 def _occupants_by_bed():
 	rows = frappe.get_all(
 		"Accommodation Allocation",

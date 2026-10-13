@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react'
 import { call } from '../api.js'
 import { friendlyName } from '../format.js'
 import { Icon } from '../icons.jsx'
+import { RequestDesk } from './requests.jsx'
 import { StatusPill } from '../ui.jsx'
 
 export function StaffHome ({ user, onLogout }) {
 	const [stay, setStay] = useState(null)
 	const [error, setError] = useState('')
 	const [loading, setLoading] = useState(true)
+	const [view, setView] = useState('stay')
 
 	useEffect(() => {
 		let active = true
@@ -56,25 +58,47 @@ export function StaffHome ({ user, onLogout }) {
 
 	return (
 		<div className="min-h-screen bg-[#F4F7FB] text-slate-800">
-			<header className="flex items-center justify-between bg-[#0B1220] px-4 py-4 text-white">
+			<header className="bg-[#0B1220] px-4 py-4 text-white">
 				<div>
 					<div className="text-sm font-semibold">HotLync</div>
 					<div className="text-xs text-slate-400">{friendlyName(user)}</div>
 				</div>
-				<div className="flex items-center gap-4">
+				<nav className="mt-3 flex flex-wrap gap-2">
+					{[
+						['stay', 'My stay', () => setView('stay')],
+						['requests', 'Requests', () => setView('requests')],
+					].map(([id, label, onClick]) => (
+						<button
+							key={id}
+							type="button"
+							onClick={onClick}
+							className={`min-h-11 rounded-lg px-3 text-sm ${
+								view === id ? 'bg-white/10 text-white' : 'text-slate-300'
+							}`}
+						>
+							{label}
+						</button>
+					))}
 					<button
 						type="button"
 						onClick={refreshStay}
-						className="text-sm text-slate-300"
+						className="min-h-11 rounded-lg px-3 text-sm text-slate-300"
 					>
 						Refresh
 					</button>
-					<button type="button" onClick={onLogout} className="text-sm text-slate-300">
+					<button
+						type="button"
+						onClick={onLogout}
+						className="min-h-11 rounded-lg px-3 text-sm text-slate-300"
+					>
 						Sign out
 					</button>
-				</div>
+				</nav>
 			</header>
-			<main className="mx-auto max-w-lg space-y-4 px-4 py-6">
+			<main className={`mx-auto space-y-4 px-4 py-6 ${view === 'stay' ? 'max-w-lg' : 'max-w-5xl'}`}>
+				{view === 'requests' && <RequestDesk mode="staff" />}
+				{view === 'stay' && (
+				<>
 				<section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
 					<div className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-900">
 						<Icon name="bed" className="h-4 w-4 text-blue-600" />
@@ -110,6 +134,8 @@ export function StaffHome ({ user, onLogout }) {
 						)}
 					</section>
 				)}
+				</>
+				)}
 			</main>
 		</div>
 	)
@@ -130,7 +156,7 @@ function Stay ({ row }) {
 				<span className="font-medium text-slate-900">
 					{row.bed_number ? `Bed ${row.bed_number}` : 'Stay'}
 				</span>
-				<StatusPill value={row.status} />
+				<StatusPill status={row.status} />
 			</div>
 			{place && <p className="text-slate-500">{place}</p>}
 			<p className="text-xs text-slate-400">

@@ -8,6 +8,7 @@ app_license = "MIT"
 after_install = "hotlync.setup.install.after_install"
 
 permission_query_conditions = {
+	"Accommodation Request": "hotlync.accommodation.doctype.accommodation_request.accommodation_request.get_permission_query_conditions",
 	"Accommodation Allocation": "hotlync.accommodation.doctype.accommodation_allocation.accommodation_allocation.get_permission_query_conditions",
 	"Property": "hotlync.accommodation.access.property_query",
 	"Building": "hotlync.accommodation.access.building_query",
@@ -17,6 +18,7 @@ permission_query_conditions = {
 }
 
 has_permission = {
+	"Accommodation Request": "hotlync.accommodation.doctype.accommodation_request.accommodation_request.has_permission",
 	"Accommodation Allocation": "hotlync.accommodation.doctype.accommodation_allocation.accommodation_allocation.has_permission",
 	"Property": "hotlync.accommodation.access.property_has_permission",
 	"Building": "hotlync.accommodation.access.building_has_permission",

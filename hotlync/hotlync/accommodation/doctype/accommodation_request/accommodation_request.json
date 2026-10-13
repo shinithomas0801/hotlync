@@ -1,0 +1,199 @@
+{
+ "actions": [],
+ "autoname": "naming_series:",
+ "creation": "2026-10-13 00:00:00",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "request_type",
+  "status",
+  "requester",
+  "employee",
+  "property",
+  "submission_date",
+  "column_break_main",
+  "reason",
+  "preferred_date",
+  "requested_bed",
+  "visitor_name",
+  "visit_start",
+  "visit_end",
+  "family_member_name",
+  "relationship",
+  "stay_start",
+  "stay_end",
+  "intended_checkout_date",
+  "decisions"
+ ],
+ "fields": [
+  {
+   "default": "ACC-REQ-.####",
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "ACC-REQ-.####",
+   "reqd": 1
+  },
+  {
+   "fieldname": "request_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Request Type",
+   "options": "Room Change\nVisitor Stay\nFamily Accommodation\nExit Clearance",
+   "reqd": 1
+  },
+  {
+   "default": "Draft",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Draft\nSubmitted\nChanges Requested\nApproved\nRejected\nCancelled",
+   "reqd": 1
+  },
+  {
+   "fieldname": "requester",
+   "fieldtype": "Link",
+   "label": "Requester",
+   "options": "User",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Employee",
+   "options": "Employee",
+   "reqd": 1
+  },
+  {
+   "fieldname": "property",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Property",
+   "options": "Property",
+   "reqd": 1
+  },
+  {
+   "fieldname": "submission_date",
+   "fieldtype": "Date",
+   "label": "Submission Date"
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "reason",
+   "fieldtype": "Small Text",
+   "label": "Reason"
+  },
+  {
+   "fieldname": "preferred_date",
+   "fieldtype": "Date",
+   "label": "Preferred Date"
+  },
+  {
+   "fieldname": "requested_bed",
+   "fieldtype": "Link",
+   "label": "Requested Bed",
+   "options": "Bed"
+  },
+  {
+   "fieldname": "visitor_name",
+   "fieldtype": "Data",
+   "label": "Visitor Name"
+  },
+  {
+   "fieldname": "visit_start",
+   "fieldtype": "Date",
+   "label": "Visit Start"
+  },
+  {
+   "fieldname": "visit_end",
+   "fieldtype": "Date",
+   "label": "Visit End"
+  },
+  {
+   "fieldname": "family_member_name",
+   "fieldtype": "Data",
+   "label": "Family Member"
+  },
+  {
+   "fieldname": "relationship",
+   "fieldtype": "Data",
+   "label": "Relationship"
+  },
+  {
+   "fieldname": "stay_start",
+   "fieldtype": "Date",
+   "label": "Stay Start"
+  },
+  {
+   "fieldname": "stay_end",
+   "fieldtype": "Date",
+   "label": "Stay End"
+  },
+  {
+   "fieldname": "intended_checkout_date",
+   "fieldtype": "Date",
+   "label": "Intended Check-out Date"
+  },
+  {
+   "fieldname": "decisions",
+   "fieldtype": "Table",
+   "label": "Decisions",
+   "options": "Accommodation Request Decision"
+  }
+ ],
+ "links": [],
+ "modified": "2026-10-13 00:00:00",
+ "module": "Accommodation",
+ "name": "Accommodation Request",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accommodation Admin",
+   "write": 1
+  },
+  {
+   "create": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accommodation Manager",
+   "write": 1
+  },
+  {
+   "create": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Staff",
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "request_type",
+ "track_changes": 1
+}
