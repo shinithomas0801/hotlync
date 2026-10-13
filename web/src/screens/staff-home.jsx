@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { call } from '../api.js'
 import { friendlyName } from '../format.js'
 import { Icon } from '../icons.jsx'
+import { MaintenanceDesk } from './maintenance.jsx'
 import { RequestDesk } from './requests.jsx'
 import { StatusPill } from '../ui.jsx'
 
@@ -67,6 +68,7 @@ export function StaffHome ({ user, onLogout }) {
 					{[
 						['stay', 'My stay', () => setView('stay')],
 						['requests', 'Requests', () => setView('requests')],
+						['maintenance', 'Maintenance', () => setView('maintenance')],
 					].map(([id, label, onClick]) => (
 						<button
 							key={id}
@@ -97,6 +99,7 @@ export function StaffHome ({ user, onLogout }) {
 			</header>
 			<main className={`mx-auto space-y-4 px-4 py-6 ${view === 'stay' ? 'max-w-lg' : 'max-w-5xl'}`}>
 				{view === 'requests' && <RequestDesk mode="staff" />}
+				{view === 'maintenance' && <MaintenanceDesk mode="staff" />}
 				{view === 'stay' && (
 				<>
 				<section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">

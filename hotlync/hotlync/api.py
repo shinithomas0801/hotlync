@@ -681,6 +681,108 @@ def decide_request(name, action, comment=None):
 	return record_decision(name, action, comment=comment)
 
 
+@frappe.whitelist()
+def get_tickets(name=None, status=None):
+	from hotlync.accommodation.doctype.maintenance_ticket.maintenance_ticket import (
+		get_tickets as list_tickets,
+	)
+
+	return list_tickets(name=name, status=status)
+
+
+@frappe.whitelist()
+def get_ticket_locations(property=None):
+	from hotlync.accommodation.doctype.maintenance_ticket.maintenance_ticket import (
+		get_ticket_locations as locations_for_ticket,
+	)
+
+	return locations_for_ticket(property)
+
+
+@frappe.whitelist()
+def save_ticket(
+	name=None,
+	category=None,
+	urgency=None,
+	property=None,
+	building=None,
+	room=None,
+	bed=None,
+	employee=None,
+	description=None,
+	preferred_contact=None,
+	photo=None,
+):
+	from hotlync.accommodation.doctype.maintenance_ticket.maintenance_ticket import (
+		save_ticket as persist_ticket,
+	)
+
+	return persist_ticket(
+		name=name,
+		category=category,
+		urgency=urgency,
+		property=property,
+		building=building,
+		room=room,
+		bed=bed,
+		employee=employee,
+		description=description,
+		preferred_contact=preferred_contact,
+		photo=photo,
+	)
+
+
+@frappe.whitelist()
+def assign_ticket(name, assignee=None, team_name=None, contractor_name=None, comment=None):
+	from hotlync.accommodation.doctype.maintenance_ticket.maintenance_ticket import (
+		assign_ticket as assign_work,
+	)
+
+	return assign_work(
+		name,
+		assignee=assignee,
+		team_name=team_name,
+		contractor_name=contractor_name,
+		comment=comment,
+	)
+
+
+@frappe.whitelist()
+def update_ticket(name, status, comment=None, resolution=None):
+	from hotlync.accommodation.doctype.maintenance_ticket.maintenance_ticket import (
+		update_ticket as progress_ticket,
+	)
+
+	return progress_ticket(name, status, comment=comment, resolution=resolution)
+
+
+@frappe.whitelist()
+def add_note(name, note_type, comment, evidence=None):
+	from hotlync.accommodation.doctype.maintenance_ticket.maintenance_ticket import (
+		add_note as record_note,
+	)
+
+	return record_note(name, note_type, comment, evidence=evidence)
+
+
+@frappe.whitelist()
+def reopen_ticket(name, comment=None):
+	from hotlync.accommodation.doctype.maintenance_ticket.maintenance_ticket import (
+		reopen_ticket as reopen_work,
+	)
+
+	return reopen_work(name, comment=comment)
+
+
+@frappe.whitelist()
+def attach_ticket_photo():
+	from hotlync.accommodation.doctype.maintenance_ticket.maintenance_ticket import (
+		attach_ticket_photo as attach_photo,
+	)
+
+	return attach_photo()
+
+
 def _occupants_by_bed():
 	rows = frappe.get_all(
 		"Accommodation Allocation",

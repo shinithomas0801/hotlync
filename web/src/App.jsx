@@ -5,6 +5,7 @@ import { Allocate, StayDesk, Transfer } from './screens/actions.jsx'
 import { Accommodation } from './screens/accommodation.jsx'
 import { Dashboard, Occupancy } from './screens/dashboard.jsx'
 import { Administration, LaterModule, StaffList } from './screens/modules.jsx'
+import { MaintenanceDesk } from './screens/maintenance.jsx'
 import { RequestDesk } from './screens/requests.jsx'
 import { StaffHome } from './screens/staff-home.jsx'
 import { Shell } from './shell.jsx'
@@ -71,7 +72,8 @@ export default function App () {
 			{screen === 'staff' && <StaffList />}
 			{screen === 'administration' && <Administration roles={session.roles} onChanged={refresh} />}
 			{screen === 'requests' && <RequestDesk mode="manager" />}
-			{['maintenance', 'facilities', 'keys', 'inventory', 'lost', 'transport', 'communication'].includes(screen) && (
+			{screen === 'maintenance' && <MaintenanceDesk mode="manager" />}
+			{['facilities', 'keys', 'inventory', 'lost', 'transport', 'communication'].includes(screen) && (
 				<LaterModule id={screen} />
 			)}
 		</Shell>

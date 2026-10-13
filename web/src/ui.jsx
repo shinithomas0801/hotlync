@@ -75,6 +75,11 @@ export function StatusPill ({ status }) {
 		Approved: 'bg-emerald-50 text-emerald-700',
 		Rejected: 'bg-rose-50 text-rose-600',
 		Cancelled: 'bg-slate-100 text-slate-500',
+		Assigned: 'bg-violet-50 text-violet-700',
+		'In Progress': 'bg-amber-50 text-amber-700',
+		Waiting: 'bg-slate-100 text-slate-600',
+		Resolved: 'bg-emerald-50 text-emerald-700',
+		Closed: 'bg-slate-100 text-slate-500',
 	}
 	return (
 		<span

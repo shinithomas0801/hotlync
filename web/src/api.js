@@ -54,6 +54,27 @@ export async function call (method, args) {
 	return data.message
 }
 
+export async function uploadTicketPhoto (docname, file) {
+	const body = new FormData()
+	body.append('file', file)
+	body.append('doctype', 'Maintenance Ticket')
+	body.append('docname', docname)
+	body.append('fieldname', 'photo')
+	body.append('is_private', '1')
+	body.append('method', 'hotlync.api.attach_ticket_photo')
+	const response = await fetch(`${API}/api/method/upload_file`, {
+		method: 'POST',
+		credentials: 'include',
+		headers: csrfToken ? { 'X-Frappe-CSRF-Token': csrfToken } : {},
+		body,
+	})
+	const data = await response.json().catch(() => ({}))
+	if (!response.ok) {
+		throw new Error(readError(data))
+	}
+	return data.message
+}
+
 export async function logout () {
 	await fetch(`${API}/api/method/logout`, {
 		method: 'POST',
