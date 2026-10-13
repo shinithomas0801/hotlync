@@ -783,6 +783,71 @@ def attach_ticket_photo():
 	return attach_photo()
 
 
+@frappe.whitelist()
+def get_keys(name=None, status=None):
+	from hotlync.accommodation.doctype.accommodation_key.accommodation_key import (
+		get_keys as list_keys,
+	)
+
+	return list_keys(name=name, status=status)
+
+
+@frappe.whitelist()
+def get_key_rooms(property=None):
+	from hotlync.accommodation.doctype.accommodation_key.accommodation_key import (
+		get_key_rooms as rooms_for_key,
+	)
+
+	return rooms_for_key(property)
+
+
+@frappe.whitelist()
+def register_key(label=None, kind=None, property=None, room=None, access_point=None):
+	from hotlync.accommodation.doctype.accommodation_key.accommodation_key import (
+		register_key as register,
+	)
+
+	return register(
+		label=label,
+		kind=kind,
+		property=property,
+		room=room,
+		access_point=access_point,
+	)
+
+
+@frappe.whitelist()
+def issue_key(name, employee=None, expected_return=None, condition=None):
+	from hotlync.accommodation.doctype.accommodation_key.accommodation_key import (
+		issue_key as issue,
+	)
+
+	return issue(
+		name,
+		employee=employee,
+		expected_return=expected_return,
+		condition=condition,
+	)
+
+
+@frappe.whitelist()
+def return_key(name, condition=None, note=None):
+	from hotlync.accommodation.doctype.accommodation_key.accommodation_key import (
+		return_key as give_back,
+	)
+
+	return give_back(name, condition=condition, note=note)
+
+
+@frappe.whitelist()
+def record_key_incident(name, status, note=None, replaced_by=None):
+	from hotlync.accommodation.doctype.accommodation_key.accommodation_key import (
+		record_key_incident as record_incident,
+	)
+
+	return record_incident(name, status, note=note, replaced_by=replaced_by)
+
+
 def _occupants_by_bed():
 	rows = frappe.get_all(
 		"Accommodation Allocation",

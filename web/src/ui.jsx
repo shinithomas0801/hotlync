@@ -80,6 +80,11 @@ export function StatusPill ({ status }) {
 		Waiting: 'bg-slate-100 text-slate-600',
 		Resolved: 'bg-emerald-50 text-emerald-700',
 		Closed: 'bg-slate-100 text-slate-500',
+		Issued: 'bg-violet-50 text-violet-700',
+		Lost: 'bg-rose-50 text-rose-600',
+		Damaged: 'bg-amber-50 text-amber-700',
+		Replaced: 'bg-slate-100 text-slate-600',
+		Decommissioned: 'bg-slate-100 text-slate-500',
 	}
 	return (
 		<span
