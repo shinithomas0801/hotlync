@@ -64,7 +64,7 @@ install_if_missing hrms
 install_if_missing hotlync
 
 bench --site development.localhost set-config developer_mode 1
-bench --site development.localhost set-config allow_cors "*"
+bench --site development.localhost set-config allow_cors "http://127.0.0.1:5173"
 bench --site development.localhost clear-cache
 bench --site development.localhost migrate
 bench --site development.localhost execute hotlync.accommodation.seed.execute
