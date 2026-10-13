@@ -43,6 +43,7 @@ export function Shell ({
 	const [openGroup, setOpenGroup] = useState('accommodation')
 	const [menuOpen, setMenuOpen] = useState(false)
 	const [helpOpen, setHelpOpen] = useState(false)
+	const [navOpen, setNavOpen] = useState(false)
 	const name = friendlyName(user)
 	const role = roleLabel(user)
 
@@ -55,9 +56,26 @@ export function Shell ({
 		}
 	}, [screen])
 
+	function choose (id) {
+		onNavigate(id)
+		setNavOpen(false)
+	}
+
 	return (
 		<div className="flex h-screen overflow-hidden bg-[#F4F7FB] text-slate-800">
-			<aside className="flex w-[248px] shrink-0 flex-col bg-[#0B1220] text-slate-300">
+			{navOpen && (
+				<button
+					type="button"
+					className="fixed inset-0 z-20 bg-slate-900/40 lg:hidden"
+					aria-label="Close menu"
+					onClick={() => setNavOpen(false)}
+				/>
+			)}
+			<aside
+				className={`fixed inset-y-0 left-0 z-30 flex w-[248px] shrink-0 flex-col bg-[#0B1220] text-slate-300 transition-transform lg:static lg:translate-x-0 ${
+					navOpen ? 'translate-x-0' : '-translate-x-full'
+				}`}
+			>
 				<div className="flex items-center gap-3 px-5 py-5">
 					<div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#2563EB] text-white">
 						<Icon name="home" className="h-5 w-5" />
@@ -81,12 +99,12 @@ export function Shell ({
 									onClick={() => {
 										if (item.children) {
 											setOpenGroup(expanded ? '' : item.id)
-											onNavigate(item.children[0].id)
+											choose(item.children[0].id)
 											return
 										}
-										onNavigate(item.id)
+										choose(item.id)
 									}}
-									className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-[13px] ${
+									className={`flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-[13px] lg:min-h-0 ${
 										active
 											? 'bg-[#2563EB] font-medium text-white'
 											: 'text-slate-300 hover:bg-white/5 hover:text-white'
@@ -107,8 +125,8 @@ export function Shell ({
 											<button
 												key={child.id}
 												type="button"
-												onClick={() => onNavigate(child.id)}
-												className={`block w-full rounded-lg px-3 py-1.5 text-left text-[13px] ${
+												onClick={() => choose(child.id)}
+												className={`block min-h-11 w-full rounded-lg px-3 py-1.5 text-left text-[13px] lg:min-h-0 ${
 													child.id === screen
 														? 'bg-white/10 font-medium text-white'
 														: 'text-slate-400 hover:text-white'
@@ -136,8 +154,16 @@ export function Shell ({
 				</div>
 			</aside>
 			<div className="flex min-w-0 flex-1 flex-col">
-				<header className="relative flex h-16 items-center gap-4 border-b border-slate-200/80 bg-white px-6">
-					<label className="relative flex h-10 max-w-xl flex-1 items-center gap-2 rounded-full border border-slate-200 bg-[#F4F7FB] px-4">
+				<header className="relative flex h-16 items-center gap-2 border-b border-slate-200/80 bg-white px-3 sm:gap-4 sm:px-6">
+					<button
+						type="button"
+						className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-slate-600 hover:bg-slate-100 lg:hidden"
+						aria-label="Open menu"
+						onClick={() => setNavOpen(true)}
+					>
+						<Icon name="menu" className="h-5 w-5" />
+					</button>
+					<label className="relative flex h-10 min-w-0 max-w-xl flex-1 items-center gap-2 rounded-full border border-slate-200 bg-[#F4F7FB] px-4">
 						<Icon name="search" className="h-4 w-4 text-slate-400" />
 						<input
 							value={query}
@@ -172,7 +198,7 @@ export function Shell ({
 							onClick={() => setMenuOpen((open) => !open)}
 							className="flex items-center gap-3 rounded-full py-1 pr-1 pl-2 hover:bg-slate-50"
 						>
-							<span className="text-right leading-tight">
+							<span className="hidden text-right leading-tight sm:block">
 								<span className="block text-sm font-semibold text-slate-800">
 									{name}
 								</span>
@@ -184,7 +210,7 @@ export function Shell ({
 						</button>
 					</div>
 					{menuOpen && (
-						<div className="absolute top-14 right-6 z-20 w-44 rounded-xl border border-slate-200 bg-white p-1 shadow-lg">
+						<div className="absolute top-14 right-3 z-20 w-44 rounded-xl border border-slate-200 bg-white p-1 shadow-lg sm:right-6">
 							<button
 								type="button"
 								onClick={onLogout}
@@ -196,12 +222,12 @@ export function Shell ({
 						</div>
 					)}
 					{helpOpen && (
-						<div className="absolute top-14 right-20 z-20 w-64 rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-600 shadow-lg">
+						<div className="absolute top-14 right-3 z-20 w-[min(16rem,calc(100vw-1.5rem))] rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-600 shadow-lg sm:right-20">
 							Bed availability is decided in ERPNext. This screen sends the request and shows the result.
 						</div>
 					)}
 				</header>
-				<main className="flex-1 overflow-y-auto px-6 py-5">{children}</main>
+				<main className="min-w-0 flex-1 overflow-y-auto px-4 py-4 md:px-6 md:py-5">{children}</main>
 			</div>
 		</div>
 	)

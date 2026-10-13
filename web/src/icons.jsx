@@ -166,6 +166,13 @@ const paths = {
 			<path d="M5 19a7 7 0 0 1 14 0" />
 		</>
 	),
+	menu: (
+		<>
+			<path d="M4 7h16" />
+			<path d="M4 12h16" />
+			<path d="M4 17h16" />
+		</>
+	),
 	logout: (
 		<>
 			<path d="M10 7V5H5v14h5v-2" />
