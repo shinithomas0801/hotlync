@@ -12,15 +12,29 @@ def require_manager():
 		frappe.throw("Not permitted", frappe.PermissionError)
 
 
+def location_for_room(room):
+	"""Residence of a room. A room building that disagrees with its floor is unresolved."""
+	if not room:
+		return {"property": None, "building": None, "room": None}
+	floor, room_building = frappe.db.get_value("Room", room, ["floor", "building"]) or (None, None)
+	floor_building = frappe.db.get_value("Floor", floor, "building") if floor else None
+	if room_building and floor_building and room_building != floor_building:
+		return {"property": None, "building": None, "room": room}
+	building = floor_building or room_building
+	property_name = frappe.db.get_value("Building", building, "property") if building else None
+	return {"property": property_name, "building": building, "room": room}
+
+
 def location_for_bed(bed):
 	room = frappe.db.get_value("Bed", bed, "room")
 	if not room:
 		frappe.throw("Bed not found")
-	floor, building = frappe.db.get_value("Room", room, ["floor", "building"])
-	if not building and floor:
-		building = frappe.db.get_value("Floor", floor, "building")
-	property_name = frappe.db.get_value("Building", building, "property") if building else None
-	return {"property": property_name, "building": building, "room": room}
+	return location_for_room(room)
+
+
+def assert_location_complete(location):
+	if not location.get("property") or not location.get("building") or not location.get("room"):
+		frappe.throw("Bed is not linked to a residence")
 
 
 def lock_rows(doctype, names):
@@ -30,6 +44,21 @@ def lock_rows(doctype, names):
 			f"select name from `tab{doctype}` where name=%s for update",
 			name,
 		)
+
+
+def locked_allocation(name):
+	"""Read the stay under a row lock so a waiting request sees the latest status."""
+	rows = frappe.db.sql(
+		"""
+		select name, status, employee, bed, property, building, room
+		from `tabAccommodation Allocation`
+		where name=%s
+		for update
+		""",
+		name,
+		as_dict=True,
+	)
+	return rows[0] if rows else None
 
 
 def assert_employee_assignable(employee, ignore_allocation=None):

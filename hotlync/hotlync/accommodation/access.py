@@ -17,6 +17,18 @@ def property_scope(user=None):
 	)
 
 
+def active_employees_for_user(user):
+	"""Active employees linked to this login, capped so a duplicate is visible."""
+	if not user or user == "Guest":
+		return []
+	return frappe.get_all(
+		"Employee",
+		filters={"user_id": user, "status": "Active"},
+		pluck="name",
+		limit=2,
+	)
+
+
 def require_property(property_name):
 	scope = property_scope()
 	if scope is None:
@@ -52,8 +64,10 @@ def room_query(user):
 	if values == "":
 		return "1=0"
 	return (
-		"`tabRoom`.building in (select name from `tabBuilding` "
-		f"where property in ({values}))"
+		"`tabRoom`.name in (select r.name from `tabRoom` r "
+		"inner join `tabFloor` f on f.name = r.floor "
+		"inner join `tabBuilding` b on b.name = f.building "
+		f"where b.property in ({values}))"
 	)
 
 
@@ -65,31 +79,32 @@ def bed_query(user):
 		return "1=0"
 	return (
 		"`tabBed`.room in (select r.name from `tabRoom` r "
-		"inner join `tabBuilding` b on b.name = r.building "
+		"inner join `tabFloor` f on f.name = r.floor "
+		"inner join `tabBuilding` b on b.name = f.building "
 		f"where b.property in ({values}))"
 	)
 
 
-def property_has_permission(doc, user=None, permission_type=None):
+def property_has_permission(doc, ptype="read", user=None, debug=False):
 	return _allows(doc.name, user)
 
 
-def building_has_permission(doc, user=None, permission_type=None):
+def building_has_permission(doc, ptype="read", user=None, debug=False):
 	return _allows(doc.property, user)
 
 
-def floor_has_permission(doc, user=None, permission_type=None):
+def floor_has_permission(doc, ptype="read", user=None, debug=False):
 	property_name = frappe.db.get_value("Building", doc.building, "property")
 	return _allows(property_name, user)
 
 
-def room_has_permission(doc, user=None, permission_type=None):
+def room_has_permission(doc, ptype="read", user=None, debug=False):
 	building = doc.building or frappe.db.get_value("Floor", doc.floor, "building")
 	property_name = frappe.db.get_value("Building", building, "property")
 	return _allows(property_name, user)
 
 
-def bed_has_permission(doc, user=None, permission_type=None):
+def bed_has_permission(doc, ptype="read", user=None, debug=False):
 	building = frappe.db.get_value("Room", doc.room, "building")
 	if not building:
 		floor = frappe.db.get_value("Room", doc.room, "floor")
