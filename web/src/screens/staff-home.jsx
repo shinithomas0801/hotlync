@@ -1,37 +1,58 @@
 import { useEffect, useState } from 'react'
-import { listDocs } from '../api.js'
+import { call } from '../api.js'
 import { friendlyName } from '../format.js'
 import { Icon } from '../icons.jsx'
 import { StatusPill } from '../ui.jsx'
 
 export function StaffHome ({ user, onLogout }) {
-	const [rows, setRows] = useState(null)
+	const [stay, setStay] = useState(null)
 	const [error, setError] = useState('')
+	const [loading, setLoading] = useState(true)
 
 	useEffect(() => {
 		let active = true
-		listDocs('Accommodation Allocation', {
-			fields: ['name', 'status', 'bed', 'room', 'check_in_date', 'check_out_date'],
-			limit: 20,
-			orderBy: 'modified desc',
-		})
+		setLoading(true)
+		setStay(null)
+		setError('')
+		call('hotlync.api.get_my_stay')
 			.then((next) => {
 				if (active) {
-					setRows(next || [])
-					setError('')
+					setStay(next)
 				}
 			})
 			.catch((err) => {
 				if (active) {
-					setError(err.message)
+					setError(err.message || 'Your stay could not be loaded.')
+				}
+			})
+			.finally(() => {
+				if (active) {
+					setLoading(false)
 				}
 			})
 		return () => {
 			active = false
 		}
-	}, [])
+	}, [user])
 
-	const current = (rows || []).find((row) => row.status === 'Checked In')
+	function refreshStay () {
+		setLoading(true)
+		setStay(null)
+		setError('')
+		call('hotlync.api.get_my_stay')
+			.then((next) => {
+				setStay(next)
+			})
+			.catch((err) => {
+				setError(err.message || 'Your stay could not be loaded.')
+			})
+			.finally(() => {
+				setLoading(false)
+			})
+	}
+
+	const current = stay?.current
+	const previous = stay?.previous || []
 
 	return (
 		<div className="min-h-screen bg-[#F4F7FB] text-slate-800">
@@ -40,9 +61,18 @@ export function StaffHome ({ user, onLogout }) {
 					<div className="text-sm font-semibold">HotLync</div>
 					<div className="text-xs text-slate-400">{friendlyName(user)}</div>
 				</div>
-				<button type="button" onClick={onLogout} className="text-sm text-slate-300">
-					Sign out
-				</button>
+				<div className="flex items-center gap-4">
+					<button
+						type="button"
+						onClick={refreshStay}
+						className="text-sm text-slate-300"
+					>
+						Refresh
+					</button>
+					<button type="button" onClick={onLogout} className="text-sm text-slate-300">
+						Sign out
+					</button>
+				</div>
 			</header>
 			<main className="mx-auto max-w-lg space-y-4 px-4 py-6">
 				<section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -50,37 +80,59 @@ export function StaffHome ({ user, onLogout }) {
 						<Icon name="bed" className="h-4 w-4 text-blue-600" />
 						My stay
 					</div>
+					{loading && (
+						<p className="text-sm text-slate-400">Loading your stay…</p>
+					)}
 					{error && <p className="text-sm text-rose-700">{error}</p>}
-					{!error && !rows && <p className="text-sm text-slate-400">Loading your stay…</p>}
-					{current && <Stay row={current} />}
-					{rows && !current && !error && (
+					{!loading && !error && stay && !stay.mapped && (
+						<p className="text-sm text-slate-500">
+							This login is not linked to an employee.
+						</p>
+					)}
+					{!loading && !error && current && <Stay row={current} />}
+					{!loading && !error && stay?.mapped && !current && (
 						<p className="text-sm text-slate-500">You have no checked-in stay.</p>
 					)}
 				</section>
-				<section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-					<h2 className="mb-3 text-sm font-semibold text-slate-900">Previous stays</h2>
-					{rows && rows.filter((row) => row.name !== current?.name).map((row) => (
-						<div key={row.name} className="border-t border-slate-100 py-3 first:border-t-0 first:pt-0">
-							<Stay row={row} />
-						</div>
-					))}
-					{rows && rows.length === 0 && (
-						<p className="text-sm text-slate-500">No stays yet.</p>
-					)}
-				</section>
+				{stay?.mapped && (
+					<section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+						<h2 className="mb-3 text-sm font-semibold text-slate-900">Previous stays</h2>
+						{previous.map((row) => (
+							<div
+								key={row.name}
+								className="border-t border-slate-100 py-3 first:border-t-0 first:pt-0"
+							>
+								<Stay row={row} />
+							</div>
+						))}
+						{previous.length === 0 && (
+							<p className="text-sm text-slate-500">No earlier stays.</p>
+						)}
+					</section>
+				)}
 			</main>
 		</div>
 	)
 }
 
 function Stay ({ row }) {
+	const place = [
+		row.property_name,
+		row.building_name,
+		row.floor_name,
+		row.room_number ? `Room ${row.room_number}` : '',
+		row.bed_number ? `Bed ${row.bed_number}` : '',
+	].filter(Boolean).join(' · ')
+
 	return (
 		<div className="space-y-1 text-sm">
 			<div className="flex items-center justify-between gap-2">
-				<span className="font-medium text-slate-900">{row.bed}</span>
+				<span className="font-medium text-slate-900">
+					{row.bed_number ? `Bed ${row.bed_number}` : 'Stay'}
+				</span>
 				<StatusPill value={row.status} />
 			</div>
-			<p className="text-slate-500">{row.room}</p>
+			{place && <p className="text-slate-500">{place}</p>}
 			<p className="text-xs text-slate-400">
 				{row.check_in_date || 'Not checked in'}
 				{row.check_out_date ? ` to ${row.check_out_date}` : ''}

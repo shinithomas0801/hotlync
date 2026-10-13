@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { call } from '../api.js'
 import {
 	activityLabel,
-	flattenProperty,
 	friendlyName,
 	greeting,
 	initials,
@@ -30,19 +29,20 @@ export function Dashboard ({ user, version, onOpen }) {
 	useEffect(() => {
 		let active = true
 		Promise.all([
-			call('hotlync.api.get_dashboard', propertyId ? { property: propertyId } : {}),
+			call(
+				'hotlync.api.get_accommodation_report',
+				propertyId ? { property: propertyId } : {},
+			),
 			call('hotlync.api.get_accommodation'),
 			call('hotlync.api.get_allocations', propertyId ? { property: propertyId } : {}),
 		])
-			.then(([nextCounts, nextTree, rows]) => {
+			.then(([report, nextTree, rows]) => {
 				if (!active) {
 					return
 				}
-				setCounts(nextCounts)
+				setCounts(report)
 				setTree(nextTree || [])
-				setBuildings(flattenProperty(nextTree).buildings.filter((item) => (
-					!propertyId || item.propertyId === propertyId
-				)))
+				setBuildings(report.buildings || [])
 				setActivity(rows || [])
 				setError('')
 			})
@@ -68,8 +68,8 @@ export function Dashboard ({ user, version, onOpen }) {
 	}
 
 	const today = todayIso()
-	const checkIns = activity.filter((row) => row.check_in_date === today).length
-	const checkOuts = activity.filter((row) => row.check_out_date === today).length
+	const checkIns = counts.check_ins_today
+	const checkOuts = counts.check_outs_today
 	const occupiedPct = percent(counts.occupied, counts.total)
 	const availablePct = percent(counts.available, counts.total)
 	const maintenancePct = percent(counts.maintenance, counts.total)
@@ -301,16 +301,13 @@ export function Occupancy ({ version }) {
 
 	useEffect(() => {
 		let active = true
-		Promise.all([
-			call('hotlync.api.get_dashboard'),
-			call('hotlync.api.get_accommodation'),
-		])
-			.then(([nextCounts, tree]) => {
+		call('hotlync.api.get_accommodation_report')
+			.then((report) => {
 				if (!active) {
 					return
 				}
-				setCounts(nextCounts)
-				setBuildings(flattenProperty(tree).buildings)
+				setCounts(report)
+				setBuildings(report.buildings || [])
 			})
 			.catch((err) => active && setError(err.message))
 		return () => {
@@ -431,7 +428,10 @@ function BuildingBars ({ buildings }) {
 	return (
 		<div className="flex h-52 items-end gap-4 border-b border-slate-100 px-2">
 			{buildings.map((building, index) => {
-				const value = percent(building.occupied, building.bedCount)
+				const occupied = building.occupied || 0
+				const total = building.total ?? building.bedCount ?? 0
+				const value = percent(occupied, total)
+				const label = building.building_name || building.buildingName
 				return (
 					<div key={building.name} className="flex flex-1 flex-col items-center gap-2">
 						<div className="text-xs font-medium text-slate-500">{value}%</div>
@@ -441,7 +441,7 @@ function BuildingBars ({ buildings }) {
 								style={{ height: `${Math.max(value, 4)}%` }}
 							/>
 						</div>
-						<div className="text-center text-xs text-slate-500">{building.buildingName}</div>
+						<div className="text-center text-xs text-slate-500">{label}</div>
 					</div>
 				)
 			})}
