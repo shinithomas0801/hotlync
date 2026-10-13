@@ -14,10 +14,12 @@ import { Panel, StatusPill } from '../ui.jsx'
 
 export function Dashboard ({ user, version, onOpen }) {
 	const [counts, setCounts] = useState(null)
+	const [tree, setTree] = useState([])
 	const [buildings, setBuildings] = useState([])
 	const [activity, setActivity] = useState([])
 	const [error, setError] = useState('')
 	const [showAll, setShowAll] = useState(false)
+	const [propertyId, setPropertyId] = useState('')
 	const [now, setNow] = useState(() => new Date())
 
 	useEffect(() => {
@@ -28,16 +30,19 @@ export function Dashboard ({ user, version, onOpen }) {
 	useEffect(() => {
 		let active = true
 		Promise.all([
-			call('hotlync.api.get_dashboard'),
+			call('hotlync.api.get_dashboard', propertyId ? { property: propertyId } : {}),
 			call('hotlync.api.get_accommodation'),
-			call('hotlync.api.get_allocations'),
+			call('hotlync.api.get_allocations', propertyId ? { property: propertyId } : {}),
 		])
-			.then(([nextCounts, tree, rows]) => {
+			.then(([nextCounts, nextTree, rows]) => {
 				if (!active) {
 					return
 				}
 				setCounts(nextCounts)
-				setBuildings(flattenProperty(tree).buildings)
+				setTree(nextTree || [])
+				setBuildings(flattenProperty(nextTree).buildings.filter((item) => (
+					!propertyId || item.propertyId === propertyId
+				)))
 				setActivity(rows || [])
 				setError('')
 			})
@@ -49,7 +54,7 @@ export function Dashboard ({ user, version, onOpen }) {
 		return () => {
 			active = false
 		}
-	}, [version])
+	}, [version, propertyId])
 
 	if (error) {
 		return (
@@ -92,12 +97,28 @@ export function Dashboard ({ user, version, onOpen }) {
 						Here's what's happening at HotLync today.
 					</p>
 				</div>
-				<div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 shadow-sm">
+				<div className="flex items-center gap-2">
+					{tree.length > 1 && (
+						<select
+							value={propertyId}
+							onChange={(event) => setPropertyId(event.target.value)}
+							className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm"
+						>
+							<option value="">All properties</option>
+							{tree.map((item) => (
+								<option key={item.name} value={item.name}>
+									{item.property_name}
+								</option>
+							))}
+						</select>
+					)}
+					<div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 shadow-sm">
 					<Icon name="calendar" className="h-4 w-4 text-slate-400" />
 					<span>
 						{dateLabel}
 						<span className="mt-0.5 block text-xs text-slate-400">{timeLabel}</span>
 					</span>
+					</div>
 				</div>
 			</div>
 			<div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">

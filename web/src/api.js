@@ -66,6 +66,32 @@ export async function logout () {
 	setCsrfToken('')
 }
 
+export async function listDocs (doctype, params) {
+	const query = new URLSearchParams()
+	if (params?.fields) {
+		query.set('fields', JSON.stringify(params.fields))
+	}
+	if (params?.limit) {
+		query.set('limit_page_length', String(params.limit))
+	}
+	if (params?.orderBy) {
+		query.set('order_by', params.orderBy)
+	}
+	const response = await fetch(
+		`${API}/api/resource/${encodeURIComponent(doctype)}?${query}`,
+		{
+			method: 'GET',
+			credentials: 'include',
+			headers: { Accept: 'application/json' },
+		},
+	)
+	const data = await response.json().catch(() => ({}))
+	if (!response.ok) {
+		throw new Error(readError(data))
+	}
+	return data.data
+}
+
 export async function createDoc (doctype, doc) {
 	const response = await fetch(
 		`${API}/api/resource/${encodeURIComponent(doctype)}`,

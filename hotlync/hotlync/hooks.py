@@ -9,10 +9,20 @@ after_install = "hotlync.setup.install.after_install"
 
 permission_query_conditions = {
 	"Accommodation Allocation": "hotlync.accommodation.doctype.accommodation_allocation.accommodation_allocation.get_permission_query_conditions",
+	"Property": "hotlync.accommodation.access.property_query",
+	"Building": "hotlync.accommodation.access.building_query",
+	"Floor": "hotlync.accommodation.access.floor_query",
+	"Room": "hotlync.accommodation.access.room_query",
+	"Bed": "hotlync.accommodation.access.bed_query",
 }
 
 has_permission = {
 	"Accommodation Allocation": "hotlync.accommodation.doctype.accommodation_allocation.accommodation_allocation.has_permission",
+	"Property": "hotlync.accommodation.access.property_has_permission",
+	"Building": "hotlync.accommodation.access.building_has_permission",
+	"Floor": "hotlync.accommodation.access.floor_has_permission",
+	"Room": "hotlync.accommodation.access.room_has_permission",
+	"Bed": "hotlync.accommodation.access.bed_has_permission",
 }
 
 fixtures = []

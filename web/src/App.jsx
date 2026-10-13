@@ -1,15 +1,17 @@
 import { useState } from 'react'
 import { login, logout } from './api.js'
+import { isStaffSession } from './format.js'
 import { Allocate, StayDesk, Transfer } from './screens/actions.jsx'
 import { Accommodation } from './screens/accommodation.jsx'
 import { Dashboard, Occupancy } from './screens/dashboard.jsx'
 import { Administration, LaterModule, StaffList } from './screens/modules.jsx'
+import { StaffHome } from './screens/staff-home.jsx'
 import { Shell } from './shell.jsx'
 import { Icon } from './icons.jsx'
 import { inputClass } from './ui.jsx'
 
 export default function App () {
-	const [user, setUser] = useState('')
+	const [session, setSession] = useState(null)
 	const [screen, setScreen] = useState('dashboard')
 	const [query, setQuery] = useState('')
 	const [preset, setPreset] = useState(null)
@@ -26,16 +28,20 @@ export default function App () {
 
 	async function handleLogout () {
 		await logout()
-		setUser('')
+		setSession(null)
 	}
 
-	if (!user) {
-		return <Login onSuccess={setUser} />
+	if (!session) {
+		return <Login onSuccess={setSession} />
+	}
+
+	if (isStaffSession(session)) {
+		return <StaffHome user={session.user} onLogout={handleLogout} />
 	}
 
 	return (
 		<Shell
-			user={user}
+			user={session.user}
 			screen={screen}
 			query={query}
 			onQuery={setQuery}
@@ -43,7 +49,7 @@ export default function App () {
 			onLogout={handleLogout}
 		>
 			{screen === 'dashboard' && (
-				<Dashboard user={user} version={version} onOpen={open} />
+				<Dashboard user={session.user} version={version} onOpen={open} />
 			)}
 			{['buildings', 'rooms', 'beds'].includes(screen) && (
 				<Accommodation
@@ -53,6 +59,7 @@ export default function App () {
 					onQuery={setQuery}
 					onOpen={open}
 					onChanged={refresh}
+					roles={session.roles}
 				/>
 			)}
 			{screen === 'allocate' && <Allocate onDone={refresh} preset={preset} />}
@@ -61,7 +68,7 @@ export default function App () {
 			{screen === 'occupancy' && <Occupancy version={version} />}
 			{screen === 'reports' && <Occupancy version={version} />}
 			{screen === 'staff' && <StaffList />}
-			{screen === 'administration' && <Administration />}
+			{screen === 'administration' && <Administration roles={session.roles} onChanged={refresh} />}
 			{['maintenance', 'facilities', 'keys', 'inventory', 'lost', 'transport', 'requests', 'communication'].includes(screen) && (
 				<LaterModule id={screen} />
 			)}
@@ -70,8 +77,8 @@ export default function App () {
 }
 
 function Login ({ onSuccess }) {
-	const [usr, setUsr] = useState('Administrator')
-	const [pwd, setPwd] = useState('admin')
+	const [usr, setUsr] = useState('')
+	const [pwd, setPwd] = useState('')
 	const [error, setError] = useState('')
 	const [busy, setBusy] = useState(false)
 
@@ -81,7 +88,7 @@ function Login ({ onSuccess }) {
 		setError('')
 		try {
 			const session = await login(usr, pwd)
-			onSuccess(session.user)
+			onSuccess(session)
 		} catch (err) {
 			setError(err.message)
 		} finally {
@@ -139,13 +146,6 @@ function Login ({ onSuccess }) {
 					>
 						Sign in
 					</button>
-					<p className="text-xs leading-5 text-slate-400">
-						Administrator / admin
-						<br />
-						admin@hotlync.local / Admin@123
-						<br />
-						staff@hotlync.local / Staff@123
-					</p>
 				</form>
 			</div>
 		</div>

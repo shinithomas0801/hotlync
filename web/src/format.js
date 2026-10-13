@@ -15,6 +15,18 @@ export function greeting (date) {
 	return 'Good evening'
 }
 
+export function isStaffSession (session) {
+	const roles = session?.roles || []
+	const desk = ['System Manager', 'Accommodation Admin', 'Accommodation Manager']
+	return roles.includes('Staff') && !roles.some((role) => desk.includes(role))
+}
+
+export function isGroupRole (roles) {
+	return (roles || []).some((role) => (
+		role === 'System Manager' || role === 'Accommodation Admin'
+	))
+}
+
 export function friendlyName (user) {
 	if (!user) {
 		return 'there'

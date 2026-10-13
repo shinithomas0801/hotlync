@@ -1,5 +1,6 @@
 import frappe
 
+from hotlync.accommodation.access import property_scope, require_property
 from hotlync.accommodation.workflow import (
 	allocation_payload,
 	apply_bed_status,
@@ -17,31 +18,29 @@ def get_session():
 		frappe.throw("Login required", frappe.AuthenticationError)
 	from frappe.sessions import get_csrf_token
 
-	return {"user": frappe.session.user, "csrf_token": get_csrf_token()}
+	return {"user": frappe.session.user, "csrf_token": get_csrf_token(), "roles": frappe.get_roles()}
 
 
 @frappe.whitelist()
-def get_dashboard():
+def get_dashboard(property=None):
 	require_manager()
-	total = frappe.db.count("Bed")
-	occupied = frappe.db.count("Bed", {"status": "Occupied"})
-	available = frappe.db.count("Bed", {"status": "Available"})
-	maintenance = frappe.db.count("Bed", {"status": "Maintenance"})
-	return {
-		"total": total,
-		"occupied": occupied,
-		"available": available,
-		"maintenance": maintenance,
-	}
+	return _bed_counts(_selected_properties(property))
 
 
 @frappe.whitelist()
-def get_accommodation():
+def get_accommodation(property=None):
 	require_manager()
 	occupant = _occupants_by_bed()
+	filters = {}
+	selected = _selected_properties(property)
+	if selected is not None:
+		if not selected:
+			return []
+		filters["name"] = ["in", selected]
 	properties = frappe.get_all(
 		"Property",
 		fields=["name", "property_name", "code", "status"],
+		filters=filters,
 		order_by="property_name asc",
 	)
 	for property_doc in properties:
@@ -129,6 +128,9 @@ def get_available_beds(room=None):
 		room_number, building = frappe.db.get_value("Room", bed.room, ["room_number", "building"])
 		building_name = frappe.db.get_value("Building", building, "building_name")
 		property_name = frappe.db.get_value("Building", building, "property")
+		scope = property_scope()
+		if scope is not None and property_name not in scope:
+			continue
 		bed["room_number"] = room_number
 		bed["building"] = building
 		bed["building_name"] = building_name
@@ -138,11 +140,16 @@ def get_available_beds(room=None):
 
 
 @frappe.whitelist()
-def get_allocations(status=None):
+def get_allocations(status=None, property=None):
 	require_manager()
 	filters = {}
 	if status:
 		filters["status"] = status
+	selected = _selected_properties(property)
+	if selected is not None:
+		if not selected:
+			return []
+		filters["property"] = ["in", selected]
 	rows = frappe.get_all(
 		"Accommodation Allocation",
 		filters=filters,
@@ -175,6 +182,7 @@ def allocate_bed(employee, bed, allocation_date=None):
 	assert_employee_assignable(employee)
 	assert_bed_assignable(bed)
 	location = location_for_bed(bed)
+	require_property(location["property"])
 	doc = frappe.get_doc(
 		{
 			"doctype": "Accommodation Allocation",
@@ -200,6 +208,7 @@ def check_in(allocation, check_in_date=None):
 	doc = frappe.get_doc("Accommodation Allocation", allocation)
 	if doc.status != "Draft":
 		frappe.throw("Only a draft allocation can be checked in")
+	require_property(doc.property)
 	lock_rows("Employee", [doc.employee])
 	lock_rows("Bed", [doc.bed])
 	assert_bed_assignable(doc.bed, ignore_allocation=doc.name)
@@ -220,14 +229,17 @@ def transfer_stay(allocation, bed, reason=None):
 		frappe.throw("Only a checked-in stay can be transferred")
 	if bed == doc.bed:
 		frappe.throw("Choose a different bed")
+	require_property(doc.property)
 	lock_rows("Employee", [doc.employee])
 	lock_rows("Bed", [doc.bed, bed])
 	assert_bed_assignable(bed)
+	destination = location_for_bed(bed)
+	require_property(destination["property"])
 	doc.status = "Transferred"
 	if reason:
 		doc.reason = reason
 	doc.save()
-	location = location_for_bed(bed)
+	location = destination
 	new_doc = frappe.get_doc(
 		{
 			"doctype": "Accommodation Allocation",
@@ -258,12 +270,55 @@ def check_out(allocation, check_out_date=None):
 	doc = frappe.get_doc("Accommodation Allocation", allocation)
 	if doc.status != "Checked In":
 		frappe.throw("Only a checked-in stay can be checked out")
+	require_property(doc.property)
 	lock_rows("Employee", [doc.employee])
 	lock_rows("Bed", [doc.bed])
 	doc.status = "Completed"
 	doc.check_out_date = check_out_date or frappe.utils.today()
 	doc.save()
 	return allocation_payload(doc)
+
+
+def _selected_properties(property_name):
+	if property_name:
+		require_property(property_name)
+		return [property_name]
+	return property_scope()
+
+
+def _bed_counts(property_names):
+	if property_names is None:
+		return {
+			"total": frappe.db.count("Bed"),
+			"occupied": frappe.db.count("Bed", {"status": "Occupied"}),
+			"available": frappe.db.count("Bed", {"status": "Available"}),
+			"maintenance": frappe.db.count("Bed", {"status": "Maintenance"}),
+		}
+	if not property_names:
+		return {"total": 0, "occupied": 0, "available": 0, "maintenance": 0}
+	rows = frappe.db.sql(
+		"""
+		select b.status, count(*)
+		from `tabBed` b
+		inner join `tabRoom` r on r.name = b.room
+		inner join `tabFloor` f on f.name = r.floor
+		inner join `tabBuilding` g on g.name = f.building
+		where g.property in %s
+		group by b.status
+		""",
+		[property_names],
+	)
+	counts = {"total": 0, "occupied": 0, "available": 0, "maintenance": 0}
+	labels = {
+		"Occupied": "occupied",
+		"Available": "available",
+		"Maintenance": "maintenance",
+	}
+	for status, count in rows:
+		counts["total"] += count
+		if status in labels:
+			counts[labels[status]] = count
+	return counts
 
 
 def _occupants_by_bed():

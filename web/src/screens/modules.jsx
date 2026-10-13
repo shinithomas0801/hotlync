@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { call } from '../api.js'
+import { call, createDoc } from '../api.js'
+import { isGroupRole } from '../format.js'
 import { Icon } from '../icons.jsx'
-import { PageIntro } from '../ui.jsx'
+import { Field, Notice, PageIntro, inputClass } from '../ui.jsx'
 
 const later = {
 	maintenance: ['Maintenance', 'wrench', 'Work orders are a later phase. Bed status can already be Maintenance, and allocation to those beds is rejected.'],
@@ -99,27 +100,90 @@ export function StaffList () {
 	)
 }
 
-export function Administration () {
-	const roles = [
-		['Accommodation Admin', 'Creates rooms and beds, and runs allocate, check-in, transfer, and check-out.'],
-		['Accommodation Manager', 'Runs the same stay actions as Admin.'],
-		['Staff', 'Reads only their own allocation. Allocate and master-data writes return 403.'],
+export function Administration ({ roles, onChanged }) {
+	const group = isGroupRole(roles)
+	const rolesCopy = [
+		['Accommodation Admin', 'Sees every property. Creates properties and assigns managers.'],
+		['Accommodation Manager', 'Sees only assigned properties. With no assignment, property lists are empty.'],
+		['Staff', 'Opens a stay page for their own allocations. Manager calls return 403.'],
 	]
 	return (
-		<div>
+		<div className="space-y-4">
 			<PageIntro
 				icon={<Icon name="settings" className="h-5 w-5" />}
 				title="Administration"
-				subtitle="Roles for this proof. User management stays in ERPNext."
+				subtitle="Property scope is provisional. It is not a confirmed business rule."
 			/>
 			<div className="grid gap-4 md:grid-cols-3">
-				{roles.map(([title, text]) => (
+				{rolesCopy.map(([title, text]) => (
 					<section key={title} className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
 						<h2 className="text-sm font-semibold text-slate-900">{title}</h2>
 						<p className="mt-2 text-sm text-slate-500">{text}</p>
 					</section>
 				))}
 			</div>
+			{group && <AssignProperty onChanged={onChanged} />}
 		</div>
+	)
+}
+
+function AssignProperty ({ onChanged }) {
+	const [properties, setProperties] = useState([])
+	const [user, setUser] = useState('')
+	const [property, setProperty] = useState('')
+	const [error, setError] = useState('')
+	const [message, setMessage] = useState('')
+	const [busy, setBusy] = useState(false)
+
+	useEffect(() => {
+		call('hotlync.api.get_accommodation')
+			.then((tree) => setProperties(tree || []))
+			.catch((err) => setError(err.message))
+	}, [])
+
+	async function handleSubmit (event) {
+		event.preventDefault()
+		setBusy(true)
+		setError('')
+		setMessage('')
+		try {
+			await createDoc('Property Assignment', { user, property })
+			setMessage('Assignment saved.')
+			setUser('')
+			if (onChanged) {
+				onChanged()
+			}
+		} catch (err) {
+			setError(err.message)
+		} finally {
+			setBusy(false)
+		}
+	}
+
+	return (
+		<form onSubmit={handleSubmit} className="max-w-lg rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+			<h2 className="text-sm font-semibold text-slate-900">Assign a manager to a property</h2>
+			<p className="mt-1 text-sm text-slate-500">
+				Use the Frappe user id, such as manager@hotlync.local. The user needs the Accommodation Manager role.
+			</p>
+			<div className="mt-4 space-y-3">
+				<Field label="User">
+					<input className={inputClass} value={user} onChange={(event) => setUser(event.target.value)} required />
+				</Field>
+				<Field label="Property">
+					<select className={inputClass} value={property} onChange={(event) => setProperty(event.target.value)} required>
+						<option value="">Select</option>
+						{properties.map((item) => (
+							<option key={item.name} value={item.name}>{item.property_name}</option>
+						))}
+					</select>
+				</Field>
+			</div>
+			{error && <div className="mt-3"><Notice error={error} /></div>}
+			{message && <p className="mt-3 text-sm text-emerald-700">{message}</p>}
+			<button type="submit" disabled={busy} className="mt-4 rounded-lg bg-[#2563EB] px-4 py-2 text-sm font-medium text-white disabled:opacity-50">
+				Assign
+			</button>
+		</form>
 	)
 }

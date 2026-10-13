@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { call, createDoc } from '../api.js'
-import { flattenProperty, percent } from '../format.js'
+import { flattenProperty, isGroupRole, percent } from '../format.js'
 import { Icon } from '../icons.jsx'
 import { Field, Notice, PageIntro, PrimaryButton, StatusPill, inputClass } from '../ui.jsx'
 
 const pageSize = 10
 
-export function Accommodation ({ view, version, query, onQuery, onOpen, onChanged }) {
+export function Accommodation ({ view, version, query, onQuery, onOpen, onChanged, roles }) {
 	const [tree, setTree] = useState(null)
 	const [error, setError] = useState('')
 	const [propertyId, setPropertyId] = useState('')
@@ -18,6 +18,7 @@ export function Accommodation ({ view, version, query, onQuery, onOpen, onChange
 	const [page, setPage] = useState(1)
 	const [ready, setReady] = useState(false)
 	const [adding, setAdding] = useState(false)
+	const [addingProperty, setAddingProperty] = useState(false)
 	const [history, setHistory] = useState(null)
 
 	useEffect(() => {
@@ -125,11 +126,25 @@ export function Accommodation ({ view, version, query, onQuery, onOpen, onChange
 			</div>
 
 			{view === 'buildings' && (
-				<BuildingGrid buildings={flat.buildings} onOpen={(id) => {
-					setBuildingId(id)
-					setFloorId('')
-					onOpen('rooms')
-				}} />
+				<div className="space-y-4">
+					{isGroupRole(roles) && (
+						<div className="flex justify-end">
+							<button
+								type="button"
+								onClick={() => setAddingProperty(true)}
+								className="inline-flex items-center gap-1 rounded-lg bg-[#2563EB] px-3 py-1.5 text-xs font-medium text-white"
+							>
+								<Icon name="plus" className="h-3.5 w-3.5" />
+								Add property
+							</button>
+						</div>
+					)}
+					<BuildingGrid buildings={flat.buildings} onOpen={(id) => {
+						setBuildingId(id)
+						setFloorId('')
+						onOpen('rooms')
+					}} />
+				</div>
 			)}
 
 			{view === 'beds' && <BedTable beds={flat.beds} query={query} />}
@@ -321,6 +336,15 @@ export function Accommodation ({ view, version, query, onQuery, onOpen, onChange
 						)}
 					</div>
 				</>
+			)}
+			{addingProperty && (
+				<AddProperty
+					onClose={() => setAddingProperty(false)}
+					onCreated={() => {
+						setAddingProperty(false)
+						onChanged()
+					}}
+				/>
 			)}
 			{adding && (
 				<AddRoom
@@ -693,6 +717,59 @@ function RoomSketch () {
 			<rect x="162" y="48" width="46" height="22" rx="8" fill="#e2e8f0" />
 			<rect x="40" y="88" width="240" height="8" fill="#cbd5e1" />
 		</svg>
+	)
+}
+
+function AddProperty ({ onClose, onCreated }) {
+	const [code, setCode] = useState('')
+	const [name, setName] = useState('')
+	const [error, setError] = useState('')
+	const [busy, setBusy] = useState(false)
+
+	async function handleSubmit (event) {
+		event.preventDefault()
+		setBusy(true)
+		setError('')
+		try {
+			await createDoc('Property', {
+				code: code.trim(),
+				property_name: name.trim(),
+				status: 'Active',
+			})
+			onCreated()
+		} catch (err) {
+			setError(err.message)
+		} finally {
+			setBusy(false)
+		}
+	}
+
+	return (
+		<div className="fixed inset-0 z-20 flex items-center justify-center bg-slate-900/40 p-4">
+			<form onSubmit={handleSubmit} className="w-full max-w-md rounded-2xl bg-white p-6 shadow-sm">
+				<h2 className="text-lg font-semibold text-slate-900">Add property</h2>
+				<p className="mt-1 text-sm text-slate-500">
+					A property is a staff residence. Buildings and rooms are added under it.
+				</p>
+				<div className="mt-4 space-y-3">
+					<Field label="Code">
+						<input className={inputClass} value={code} onChange={(event) => setCode(event.target.value)} required />
+					</Field>
+					<Field label="Name">
+						<input className={inputClass} value={name} onChange={(event) => setName(event.target.value)} required />
+					</Field>
+				</div>
+				{error && <Notice error={error} />}
+				<div className="mt-4 flex justify-end gap-2">
+					<button type="button" onClick={onClose} className="rounded-lg px-3 py-2 text-sm text-slate-600">
+						Cancel
+					</button>
+					<button type="submit" disabled={busy} className="rounded-lg bg-[#2563EB] px-4 py-2 text-sm font-medium text-white disabled:opacity-50">
+						Save
+					</button>
+				</div>
+			</form>
+		</div>
 	)
 }
 
