@@ -4,9 +4,12 @@ import frappe
 def execute():
 	"""Load one property with beds in each status. Safe to run again."""
 	if frappe.db.exists("Property", "SRA"):
+		_fill_room_buildings()
 		_ensure_sample_stay()
 		_ensure_unallocated_employee()
 		ensure_access_users()
+		ensure_second_residence()
+		ensure_residence_manager()
 		_print_counts()
 		return
 
@@ -84,6 +87,8 @@ def execute():
 	_ensure_sample_stay()
 	_ensure_unallocated_employee()
 	ensure_access_users()
+	ensure_second_residence()
+	ensure_residence_manager()
 	_print_counts()
 
 
@@ -184,6 +189,108 @@ def _ensure_unallocated_employee():
 			"company": company,
 		}
 	).insert(ignore_permissions=True)
+	frappe.db.commit()
+
+
+def _fill_room_buildings():
+	rooms = frappe.get_all("Room", fields=["name", "floor", "building"])
+	for room in rooms:
+		if room.building or not room.floor:
+			continue
+		building = frappe.db.get_value("Floor", room.floor, "building")
+		if building:
+			frappe.db.set_value("Room", room.name, "building", building)
+
+
+def ensure_second_residence():
+	"""Staff Residence B, with a building, floor, rooms, and beds."""
+	_fill_room_buildings()
+	if not frappe.db.exists("Property", "SRB"):
+		frappe.get_doc(
+			{
+				"doctype": "Property",
+				"code": "SRB",
+				"property_name": "Staff Residence B",
+				"address": "Second staff residence",
+				"status": "Active",
+			}
+		).insert(ignore_permissions=True)
+	if not frappe.db.exists("Building", "BLD-B"):
+		frappe.get_doc(
+			{
+				"doctype": "Building",
+				"code": "BLD-B",
+				"building_name": "Building B",
+				"property": "SRB",
+				"number_of_floors": 1,
+				"status": "Active",
+			}
+		).insert(ignore_permissions=True)
+	elif frappe.db.get_value("Building", "BLD-B", "property") != "SRB":
+		frappe.throw("Building B is not linked to Staff Residence B")
+	if not frappe.db.exists("Floor", "BLD-B-1"):
+		frappe.get_doc(
+			{
+				"doctype": "Floor",
+				"building": "BLD-B",
+				"floor_number": 1,
+				"floor_name": "Floor 1",
+				"status": "Active",
+			}
+		).insert(ignore_permissions=True)
+	elif frappe.db.get_value("Floor", "BLD-B-1", "building") != "BLD-B":
+		frappe.throw("Floor 1 is not linked to Building B")
+	for room_number in ("201", "202"):
+		room_name = "BLD-B-1-" + room_number
+		if not frappe.db.exists("Room", room_name):
+			frappe.get_doc(
+				{
+					"doctype": "Room",
+					"floor": "BLD-B-1",
+					"building": "BLD-B",
+					"room_number": room_number,
+					"room_type": "Shared",
+					"capacity": 2,
+					"status": "Available",
+				}
+			).insert(ignore_permissions=True)
+		elif frappe.db.get_value("Room", room_name, "building") != "BLD-B":
+			frappe.throw("Room " + room_number + " is not linked to Building B")
+		for bed_number in ("A", "B"):
+			bed_name = room_name + "-" + bed_number
+			if frappe.db.exists("Bed", bed_name):
+				continue
+			frappe.get_doc(
+				{
+					"doctype": "Bed",
+					"room": room_name,
+					"bed_number": bed_number,
+					"status": "Available",
+				}
+			).insert(ignore_permissions=True)
+	frappe.db.commit()
+
+
+def ensure_residence_manager():
+	"""Development manager for Staff Residence A. Assignment A-04 stays provisional."""
+	_ensure_user(
+		"manager@hotlync.local",
+		"Residence",
+		"Manager",
+		"Accommodation Manager",
+		"Manager@123",
+	)
+	if not frappe.db.exists(
+		"Property Assignment",
+		{"user": "manager@hotlync.local", "property": "SRA"},
+	):
+		frappe.get_doc(
+			{
+				"doctype": "Property Assignment",
+				"user": "manager@hotlync.local",
+				"property": "SRA",
+			}
+		).insert(ignore_permissions=True)
 	frappe.db.commit()
 
 
