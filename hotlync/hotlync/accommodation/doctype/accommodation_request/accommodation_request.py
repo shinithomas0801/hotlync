@@ -62,6 +62,8 @@ class AccommodationRequest(Document):
 			frappe.throw("Property not found")
 		_require_details(self)
 		_assert_single_open(self)
+		if not self.is_new():
+			self._lock_history()
 		self._apply_transition()
 
 	def on_update(self):
@@ -89,6 +91,19 @@ class AccommodationRequest(Document):
 		if len(matches) != 1:
 			frappe.throw("This login is not linked to an employee.")
 		self.employee = matches[0]
+
+	def _lock_history(self):
+		before = self.get_doc_before_save()
+		previous = list(before.decisions or [])
+		current = list(self.decisions or [])
+		if len(current) < len(previous):
+			frappe.throw("A request decision cannot be changed")
+		for index, old in enumerate(previous):
+			new = current[index]
+			if old.action != new.action or (old.actor or "") != (new.actor or ""):
+				frappe.throw("A request decision cannot be changed")
+			if (old.comment or "") != (new.comment or ""):
+				frappe.throw("A request decision cannot be changed")
 
 	def _apply_transition(self):
 		if self.is_new():

@@ -60,6 +60,8 @@ class MaintenanceTicket(Document):
 		_require_details(self)
 		_require_location(self)
 		self._lock_details()
+		if not self.is_new():
+			self._lock_history()
 		self._apply_transition()
 
 	def on_update(self):
@@ -104,6 +106,22 @@ class MaintenanceTicket(Document):
 		for fieldname in DETAIL_FIELDS:
 			if _text(before.get(fieldname)) != _text(self.get(fieldname)):
 				frappe.throw("This ticket can no longer be edited")
+
+	def _lock_history(self):
+		before = self.get_doc_before_save()
+		previous = list(before.updates or [])
+		current = list(self.updates or [])
+		if len(current) < len(previous):
+			frappe.throw("A maintenance update cannot be changed")
+		for index, old in enumerate(previous):
+			new = current[index]
+			if old.action != new.action or _text(old.actor) != _text(new.actor):
+				frappe.throw("A maintenance update cannot be changed")
+			if _text(old.comment) != _text(new.comment):
+				frappe.throw("A maintenance update cannot be changed")
+			for fieldname in ("assignee", "team_name", "contractor_name"):
+				if _text(old.get(fieldname)) != _text(new.get(fieldname)):
+					frappe.throw("A maintenance update cannot be changed")
 
 	def _apply_transition(self):
 		if self.is_new():
