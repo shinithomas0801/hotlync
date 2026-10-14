@@ -855,6 +855,54 @@ def get_notices():
 	return list_notices()
 
 
+@frappe.whitelist()
+def get_user_access():
+	from hotlync.accommodation.user_access import get_user_access as list_access
+
+	return list_access()
+
+
+@frappe.whitelist()
+def create_user_access(email=None, first_name=None, last_name=None, role=None, password=None):
+	from hotlync.accommodation.user_access import create_user_access as create_access
+
+	return create_access(
+		email=email,
+		first_name=first_name,
+		last_name=last_name,
+		role=role,
+		password=password,
+	)
+
+
+@frappe.whitelist()
+def set_user_enabled(user=None, enabled=None):
+	from hotlync.accommodation.user_access import set_user_enabled as set_enabled
+
+	return set_enabled(user=user, enabled=enabled)
+
+
+@frappe.whitelist()
+def set_user_role(user=None, role=None):
+	from hotlync.accommodation.user_access import set_user_role as set_role
+
+	return set_role(user=user, role=role)
+
+
+@frappe.whitelist()
+def assign_user_property(user=None, property=None):
+	from hotlync.accommodation.user_access import assign_user_property as assign_property
+
+	return assign_property(user=user, property=property)
+
+
+@frappe.whitelist()
+def revoke_user_property(name=None):
+	from hotlync.accommodation.user_access import revoke_user_property as revoke_property
+
+	return revoke_property(name=name)
+
+
 def _occupants_by_bed():
 	rows = frappe.get_all(
 		"Accommodation Allocation",
