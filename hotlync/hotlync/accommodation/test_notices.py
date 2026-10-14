@@ -4,9 +4,14 @@ import frappe
 from frappe.tests import IntegrationTestCase
 
 from hotlync.api import (
+	allocate_bed,
 	assign_ticket,
+	check_in,
+	check_out,
 	decide_request,
 	get_notices,
+	issue_key,
+	register_key,
 	save_request,
 	save_ticket,
 	submit_request,
@@ -51,6 +56,8 @@ class TestNotices(IntegrationTestCase):
 		subjects = _subjects(draft["name"])
 		self.assertIn(f"{draft['name']} was submitted.", subjects)
 		self.assertNotIn("Visitor passport 123", " ".join(subjects))
+		self.assertNotIn("Notice Check", " ".join(subjects))
+		self.assertNotIn(self.employee, " ".join(subjects))
 		frappe.set_user(self.staff)
 		self.assertEqual(_subjects(draft["name"]), [])
 		frappe.set_user(self.outsider)
@@ -88,8 +95,14 @@ class TestNotices(IntegrationTestCase):
 		failed = [row for row in rows if row.reference_name == name and row.status == "Failed"]
 		self.assertEqual(len(failed), 1)
 		self.assertEqual(failed[0].subject, "A notice could not be delivered.")
+		self.assertEqual(failed[0].channel, "In App")
+		self.assertEqual(failed[0].reference_doctype, "Accommodation Request")
 		self.assertIn("mailbox unavailable", failed[0].detail)
 		self.assertNotIn("Visitor passport 123", failed[0].detail)
+		self.assertEqual(
+			frappe.db.get_value("Operational Notice", failed[0].name, "actor"),
+			self.manager,
+		)
 		frappe.set_user(self.staff)
 		self.assertNotIn(f"{name} was approved.", _subjects(name))
 
@@ -145,6 +158,144 @@ class TestNotices(IntegrationTestCase):
 			frappe.db.exists(
 				"Operational Notice",
 				{"reference_name": name, "channel": "Email"},
+			)
+		)
+
+	def test_scope_and_admin_follow_the_permission_model(self):
+		admin = _user("notice-admin@hotlync.local", "Accommodation Admin")
+		unassigned = _user("notice-open@hotlync.local", "Accommodation Manager")
+		name = self._submitted()
+		self.assertTrue(
+			frappe.db.exists(
+				"Operational Notice",
+				{"reference_name": name, "recipient": admin, "status": "Delivered"},
+			)
+		)
+		self.assertFalse(
+			frappe.db.exists(
+				"Operational Notice",
+				{"reference_name": name, "recipient": self.outsider},
+			)
+		)
+		self.assertFalse(
+			frappe.db.exists(
+				"Operational Notice",
+				{"reference_name": name, "recipient": unassigned},
+			)
+		)
+		notice = frappe.db.get_value(
+			"Operational Notice",
+			{"reference_name": name, "recipient": self.manager},
+			"name",
+		)
+		frappe.set_user(self.staff)
+		hidden = frappe.get_doc("Operational Notice", notice)
+		self.assertRaises(frappe.PermissionError, hidden.check_permission, "read")
+		frappe.set_user(admin)
+		frappe.get_doc("Operational Notice", notice).check_permission("read")
+		self.assertIn(f"{name} was submitted.", _subjects(name))
+
+	def test_a_failed_ticket_notice_leaves_the_ticket(self):
+		frappe.set_user(self.staff)
+		ticket = save_ticket(
+			category="Leak",
+			urgency="Normal",
+			property=self.home,
+			description="Secret leak under the sink",
+		)
+		frappe.set_user(self.manager)
+		with patch(
+			"hotlync.accommodation.notify._insert_notice",
+			side_effect=RuntimeError("mailbox unavailable"),
+		):
+			assigned = assign_ticket(ticket["name"], contractor_name="Pipe Co")
+		self.assertEqual(assigned["status"], "Assigned")
+		self.assertEqual(
+			frappe.db.get_value("Maintenance Ticket", ticket["name"], "status"),
+			"Assigned",
+		)
+		failed = frappe.db.get_value(
+			"Operational Notice",
+			{"reference_name": ticket["name"], "status": "Failed"},
+			["subject", "detail"],
+			as_dict=True,
+		)
+		self.assertEqual(failed.subject, "A notice could not be delivered.")
+		self.assertIn("mailbox unavailable", failed.detail)
+		self.assertNotIn("Secret leak under the sink", failed.detail)
+
+	def test_a_failed_failure_record_still_leaves_the_approval(self):
+		name = self._submitted()
+		frappe.set_user(self.manager)
+		with patch(
+			"hotlync.accommodation.notify._insert_notice",
+			side_effect=RuntimeError("mailbox unavailable"),
+		), patch(
+			"hotlync.accommodation.notify._insert_failure",
+			side_effect=RuntimeError("log store down"),
+		):
+			decide_request(name, "Approved", comment="Visitor passport 123")
+		self.assertEqual(
+			frappe.db.get_value("Accommodation Request", name, "status"),
+			"Approved",
+		)
+		self.assertFalse(
+			frappe.db.exists(
+				"Operational Notice",
+				{"reference_name": name, "event": "Approved"},
+			)
+		)
+
+	def test_a_repeated_approval_does_not_duplicate_the_notice(self):
+		name = self._submitted()
+		frappe.set_user(self.manager)
+		decide_request(name, "Approved")
+		count = frappe.db.count(
+			"Operational Notice",
+			{"reference_name": name, "event": "Approved"},
+		)
+		self.assertEqual(count, 1)
+		with self.assertRaises(frappe.ValidationError):
+			decide_request(name, "Approved")
+		self.assertEqual(
+			frappe.db.count(
+				"Operational Notice",
+				{"reference_name": name, "event": "Approved"},
+			),
+			count,
+		)
+		self.assertEqual(
+			frappe.db.get_value("Accommodation Request", name, "status"),
+			"Approved",
+		)
+
+	def test_rejection_omits_the_comment(self):
+		name = self._submitted()
+		frappe.set_user(self.manager)
+		rejected = decide_request(name, "Rejected", comment="Notice Check secret")
+		self.assertEqual(rejected["status"], "Rejected")
+		frappe.set_user(self.staff)
+		subjects = _subjects(name)
+		self.assertIn(f"{name} was rejected.", subjects)
+		self.assertNotIn("Notice Check secret", " ".join(subjects))
+		self.assertNotIn(self.employee, " ".join(subjects))
+
+	def test_check_in_check_out_and_key_issue_do_not_notify(self):
+		resident = _employee()
+		room = frappe.db.get_value("Bed", self.bed, "room")
+		frappe.set_user(self.manager)
+		allocation = allocate_bed(resident, self.bed)
+		checked = check_in(allocation["name"])
+		self.assertEqual(checked["status"], "Checked In")
+		finished = check_out(allocation["name"])
+		self.assertEqual(finished["status"], "Completed")
+		key = register_key(label="Stay key", property=self.home, room=room)
+		issued = issue_key(key["name"], employee=resident)
+		self.assertEqual(issued["status"], "Issued")
+		self.assertFalse(
+			frappe.db.exists(
+				"Operational Notice",
+				{"reference_name": ["in", [allocation["name"], key["name"]]]},
 			)
 		)
 
