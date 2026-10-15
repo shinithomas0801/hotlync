@@ -111,9 +111,13 @@ class TestAccommodationReport(IntegrationTestCase):
 		empty = get_accommodation_report()
 		self.assertEqual(empty["total"], 0)
 		self.assertEqual(empty["check_ins_today"], 0)
+		self.assertEqual(empty["check_outs_today"], 0)
 		self.assertEqual(empty["assignments"], [])
 		self.assertEqual(empty["transfers"], [])
 		self.assertEqual(empty["buildings"], [])
+		self.assertEqual(empty["pending"], [])
+		self.assertEqual(empty["arrivals"], [])
+		self.assertEqual(empty["departures"], [])
 		with self.assertRaises(frappe.PermissionError) as caught:
 			get_accommodation_report(property=home["property"])
 		self.assertEqual(str(caught.exception), "Not permitted")
@@ -130,6 +134,58 @@ class TestAccommodationReport(IntegrationTestCase):
 		self.assertEqual(str(caught.exception), "Not permitted")
 		frappe.set_user("staff@hotlync.local")
 		self.assertRaises(frappe.PermissionError, get_accommodation_report)
+
+	def test_pending_arrivals_and_departures_stay_in_scope(self):
+		home = _residence("RPTE", "Report Pending", 2)
+		other = _residence("RPTF", "Report Away", 1)
+		today = frappe.utils.today()
+		draft = allocate_bed(_employee("Waiting"), home["beds"][1])
+		opened = check_in(allocate_bed(_employee("Arrived"), home["beds"][0])["name"], today)
+		hidden = check_in(allocate_bed(_employee("Away"), other["beds"][0])["name"], today)
+		report = get_accommodation_report(property=home["property"])
+		self.assertEqual(
+			report["occupied"] + report["available"] + report["maintenance"],
+			report["total"],
+		)
+		self.assertEqual(_names(report["pending"]), {draft["name"]})
+		self.assertEqual(len(report["pending"]), 1)
+		self.assertNotIn(opened["name"], _names(report["pending"]))
+		self.assertEqual(_names(report["arrivals"]), {opened["name"]})
+		self.assertEqual(len(report["arrivals"]), report["check_ins_today"])
+		self.assertEqual(report["departures"], [])
+		self.assertEqual(report["check_outs_today"], 0)
+		self.assertNotIn(hidden["name"], _names(report["arrivals"]))
+		self.assertNotIn(hidden["name"], _names(report["pending"]))
+		check_out(opened["name"], today)
+		report = get_accommodation_report(property=home["property"])
+		self.assertEqual(_names(report["departures"]), {opened["name"]})
+		self.assertEqual(len(report["departures"]), report["check_outs_today"])
+		self.assertEqual(report["check_outs_today"], 1)
+		self.assertNotIn(opened["name"], _names(report["assignments"]))
+		self.assertEqual(_names(report["pending"]), {draft["name"]})
+		self.assertNotIn(hidden["name"], _names(report["departures"]))
+		manager = _user("report-pending@hotlync.local", "Accommodation Manager")
+		_assign(manager, home["property"])
+		frappe.set_user(manager)
+		scoped = get_accommodation_report()
+		self.assertEqual(_names(scoped["pending"]), {draft["name"]})
+		self.assertNotIn(hidden["name"], _names(scoped["arrivals"]))
+		self.assertNotIn(hidden["name"], _names(scoped["departures"]))
+		with self.assertRaises(frappe.PermissionError) as caught:
+			get_accommodation_report(property=other["property"])
+		self.assertEqual(str(caught.exception), "Not permitted")
+		with self.assertRaises(frappe.PermissionError) as missing:
+			get_accommodation_report(property="MISSING-REPORT")
+		self.assertEqual(str(missing.exception), "Not permitted")
+		frappe.set_user("Administrator")
+		blank = get_accommodation_report(property="MISSING-REPORT")
+		self.assertEqual(blank["total"], 0)
+		self.assertEqual(blank["pending"], [])
+		self.assertEqual(blank["arrivals"], [])
+		self.assertEqual(blank["departures"], [])
+		if frappe.db.exists("User", "staff@hotlync.local"):
+			frappe.set_user("staff@hotlync.local")
+			self.assertRaises(frappe.PermissionError, get_accommodation_report)
 
 
 def _same_counts(test, report, counts):

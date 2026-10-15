@@ -248,7 +248,8 @@ def get_accommodation_report(property=None):
 	active allocation and leaves the bed available. Checked In is the current
 	assignment. A transfer stays on its own row; the destination is the later
 	stay, not a second field. Occupied divided by total is the dashboard
-	display. It is not a utilization formula.
+	display. It is not a utilization formula. Pending rows are drafts waiting
+	for check-in. Arrivals and departures are today's dates.
 	"""
 	require_manager()
 	selected = _selected_properties(property)
@@ -285,6 +286,21 @@ def get_accommodation_report(property=None):
 		"check_outs": _stay_rows(
 			selected,
 			{"check_out_date": ["is", "set"]},
+			"check_out_date desc",
+		),
+		"pending": _stay_rows(
+			selected,
+			{"status": "Draft"},
+			"allocation_date desc",
+		),
+		"arrivals": _stay_rows(
+			selected,
+			{"check_in_date": today},
+			"check_in_date desc",
+		),
+		"departures": _stay_rows(
+			selected,
+			{"check_out_date": today},
 			"check_out_date desc",
 		),
 	}
