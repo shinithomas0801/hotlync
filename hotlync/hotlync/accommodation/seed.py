@@ -18,7 +18,7 @@ def execute():
 			"doctype": "Property",
 			"code": "SRA",
 			"property_name": "Staff Residence A",
-			"address": "HotLync staff residence",
+			"address": "SAMS staff residence",
 			"status": "Active",
 		}
 	).insert(ignore_permissions=True)
@@ -143,8 +143,8 @@ def _ensure_sample_employee():
 		company_doc = frappe.get_doc(
 			{
 				"doctype": "Company",
-				"company_name": "HotLync",
-				"abbr": "HL",
+				"company_name": "SAMS",
+				"abbr": "SAMS",
 				"default_currency": "AED",
 				"country": "United Arab Emirates",
 			}

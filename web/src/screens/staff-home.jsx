@@ -62,7 +62,7 @@ export function StaffHome ({ user, onLogout }) {
 		<div className="min-h-screen bg-[#F4F7FB] text-slate-800">
 			<header className="bg-[#0B1220] px-4 py-4 text-white">
 				<div>
-					<div className="text-sm font-semibold">HotLync</div>
+					<div className="text-sm font-semibold">SAMS</div>
 					<div className="text-xs text-slate-400">{friendlyName(user)}</div>
 				</div>
 				<nav className="mt-3 flex flex-wrap gap-2">

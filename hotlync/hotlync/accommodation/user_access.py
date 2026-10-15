@@ -2,7 +2,7 @@ import frappe
 
 from hotlync.accommodation.access import GROUP_ROLES
 
-HOTLYNC_ROLES = ("Staff", "Accommodation Manager", "Accommodation Admin")
+SAMS_ROLES = ("Staff", "Accommodation Manager", "Accommodation Admin")
 PROTECTED_USERS = {"Administrator", "Guest"}
 
 
@@ -18,7 +18,7 @@ def get_user_access():
 	require_admin()
 	role_rows = frappe.get_all(
 		"Has Role",
-		filters={"role": ["in", list(HOTLYNC_ROLES)], "parenttype": "User"},
+		filters={"role": ["in", list(SAMS_ROLES)], "parenttype": "User"},
 		fields=["parent", "role"],
 		limit=500,
 	)
@@ -55,7 +55,7 @@ def get_user_access():
 			}
 		)
 	users.sort(key=lambda row: row["full_name"].lower())
-	return {"users": users[:200], "roles": list(HOTLYNC_ROLES)}
+	return {"users": users[:200], "roles": list(SAMS_ROLES)}
 
 
 @frappe.whitelist()
@@ -110,7 +110,7 @@ def set_user_role(user=None, role=None):
 	if doc.name == frappe.session.user:
 		frappe.throw("You cannot change your own role")
 	_assert_role(role)
-	_replace_hotlync_roles(doc, role)
+	_replace_sams_roles(doc, role)
 	return _row(doc.name)
 
 
@@ -150,13 +150,13 @@ def _load_user(user):
 
 
 def _assert_role(role):
-	if role not in HOTLYNC_ROLES:
+	if role not in SAMS_ROLES:
 		frappe.throw("That role is not available")
 
 
-def _replace_hotlync_roles(doc, role):
+def _replace_sams_roles(doc, role):
 	for row in list(doc.roles):
-		if row.role in HOTLYNC_ROLES:
+		if row.role in SAMS_ROLES:
 			doc.remove(row)
 	doc.append("roles", {"role": role})
 	doc.save(ignore_permissions=True, ignore_version=False)
@@ -173,7 +173,7 @@ def _as_enabled(value):
 def _row(name):
 	roles = frappe.get_all(
 		"Has Role",
-		filters={"parent": name, "parenttype": "User", "role": ["in", list(HOTLYNC_ROLES)]},
+		filters={"parent": name, "parenttype": "User", "role": ["in", list(SAMS_ROLES)]},
 		pluck="role",
 	)
 	assignments = frappe.get_all(

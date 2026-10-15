@@ -1,6 +1,6 @@
 app_name = "hotlync"
-app_title = "HotLync"
-app_publisher = "HotLync"
+app_title = "SAMS"
+app_publisher = "Staff Accommodation Management System"
 app_description = "Staff accommodation and facility management"
 app_email = "dev@hotlync.local"
 app_license = "MIT"

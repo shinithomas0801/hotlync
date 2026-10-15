@@ -110,7 +110,7 @@ function Login ({ onSuccess }) {
 						<Icon name="home" className="h-5 w-5" />
 					</div>
 					<div>
-						<div className="text-lg font-semibold">HotLync</div>
+						<div className="text-lg font-semibold">SAMS</div>
 						<div className="text-xs text-slate-400">Stay · Work · Connect</div>
 					</div>
 				</div>
@@ -122,7 +122,7 @@ function Login ({ onSuccess }) {
 						Rooms, beds, and stays are enforced in ERPNext. This desk shows the live property.
 					</p>
 				</div>
-				<p className="text-xs text-slate-500">HotLync v1.0</p>
+				<p className="text-xs text-slate-500">SAMS v1.0</p>
 			</div>
 			<div className="flex items-center justify-center bg-[#F4F7FB] px-6">
 				<form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4 rounded-2xl bg-white p-8 shadow-sm">

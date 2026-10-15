@@ -81,7 +81,7 @@ export function Shell ({
 						<Icon name="home" className="h-5 w-5" />
 					</div>
 					<div>
-						<div className="text-[15px] font-semibold text-white">HotLync</div>
+						<div className="text-[15px] font-semibold text-white">SAMS</div>
 						<div className="text-[11px] text-slate-400">
 							Stay · Work · Connect
 						</div>

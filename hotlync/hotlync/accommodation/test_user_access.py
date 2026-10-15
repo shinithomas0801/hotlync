@@ -4,7 +4,7 @@ import frappe
 from frappe.tests import IntegrationTestCase
 from frappe.utils.password import check_password
 
-from hotlync.accommodation.user_access import HOTLYNC_ROLES
+from hotlync.accommodation.user_access import SAMS_ROLES
 from hotlync.api import (
 	assign_user_property,
 	create_user_access,
@@ -161,7 +161,7 @@ class TestUserAccess(IntegrationTestCase):
 		frappe.set_user(self.staff)
 		with self.assertRaises(frappe.PermissionError):
 			set_user_role(self.staff, "Accommodation Admin")
-		roles = [role for role in frappe.get_roles(self.staff) if role in HOTLYNC_ROLES]
+		roles = [role for role in frappe.get_roles(self.staff) if role in SAMS_ROLES]
 		self.assertEqual(roles, ["Staff"])
 
 	def _assert_denied(self, user):

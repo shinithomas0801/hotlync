@@ -95,7 +95,7 @@ export function Dashboard ({ user, version, onOpen }) {
 						{greeting(now)}, {name}!
 					</h1>
 					<p className="text-sm text-slate-500">
-						Here's what's happening at HotLync today.
+						Here's what's happening at SAMS today.
 					</p>
 				</div>
 				<div className="flex items-center gap-2">
@@ -234,7 +234,7 @@ export function Dashboard ({ user, version, onOpen }) {
 						</Panel>
 					</div>
 					<p className="text-center text-[11px] text-slate-400">
-						HotLync v1.0 · Secure · Reliable · Connected
+						SAMS v1.0 · Secure · Reliable · Connected
 					</p>
 				</div>
 				<div className="space-y-4">
