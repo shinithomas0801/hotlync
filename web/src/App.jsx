@@ -1,24 +1,66 @@
-import { useState } from 'react'
-import { login, logout } from './api.js'
-import { isStaffSession } from './format.js'
+import { useEffect, useState } from 'react'
+import { login, logout, restoreSession } from './api.js'
+import { isStaffSession, screenIdFromHash } from './format.js'
 import { Allocate, StayDesk, Transfer } from './screens/actions.jsx'
 import { Accommodation } from './screens/accommodation.jsx'
 import { Dashboard, Occupancy } from './screens/dashboard.jsx'
-import { Administration, LaterModule, StaffList } from './screens/modules.jsx'
+import { Administration, LaterModule, StaffList, UnknownScreen } from './screens/modules.jsx'
+import { FoundDesk } from './screens/found.jsx'
 import { KeyDesk } from './screens/keys.jsx'
 import { MaintenanceDesk } from './screens/maintenance.jsx'
 import { RequestDesk } from './screens/requests.jsx'
 import { StaffHome } from './screens/staff-home.jsx'
-import { Shell } from './shell.jsx'
+import { Shell, isDeskScreen } from './shell.jsx'
 import { Icon } from './icons.jsx'
 import { inputClass } from './ui.jsx'
 
+function screenFromLocation () {
+	return screenIdFromHash(window.location.hash)
+}
+
 export default function App () {
 	const [session, setSession] = useState(null)
-	const [screen, setScreen] = useState('dashboard')
+	const [checking, setChecking] = useState(true)
+	const [screen, setScreen] = useState(screenFromLocation)
 	const [query, setQuery] = useState('')
 	const [preset, setPreset] = useState(null)
 	const [version, setVersion] = useState(0)
+
+	useEffect(() => {
+		let active = true
+		restoreSession()
+			.then((next) => {
+				if (active && next) {
+					setSession(next)
+				}
+			})
+			.finally(() => {
+				if (active) {
+					setChecking(false)
+				}
+			})
+		return () => {
+			active = false
+		}
+	}, [])
+
+	useEffect(() => {
+		function onHash () {
+			const id = screenIdFromHash(window.location.hash)
+			setScreen((current) => (current === id ? current : id))
+		}
+		window.addEventListener('hashchange', onHash)
+		return () => window.removeEventListener('hashchange', onHash)
+	}, [])
+
+	useEffect(() => {
+		if (!session || isStaffSession(session)) {
+			return
+		}
+		if (window.location.hash !== `#${screen}`) {
+			window.location.hash = screen
+		}
+	}, [session, screen])
 
 	function open (next, nextPreset) {
 		setScreen(next)
@@ -34,6 +76,14 @@ export default function App () {
 		setSession(null)
 	}
 
+	if (checking) {
+		return (
+			<div className="flex min-h-screen items-center justify-center bg-[#F4F7FB] text-sm text-slate-500">
+				Loading…
+			</div>
+		)
+	}
+
 	if (!session) {
 		return <Login onSuccess={setSession} />
 	}
@@ -45,6 +95,7 @@ export default function App () {
 	return (
 		<Shell
 			user={session.user}
+			roles={session.roles}
 			screen={screen}
 			query={query}
 			onQuery={setQuery}
@@ -75,9 +126,11 @@ export default function App () {
 			{screen === 'requests' && <RequestDesk mode="manager" />}
 			{screen === 'maintenance' && <MaintenanceDesk mode="manager" />}
 			{screen === 'keys' && <KeyDesk />}
-			{['facilities', 'inventory', 'lost', 'transport', 'communication'].includes(screen) && (
+			{screen === 'lost' && <FoundDesk user={session.user} />}
+			{['facilities', 'inventory', 'transport', 'communication'].includes(screen) && (
 				<LaterModule id={screen} />
 			)}
+			{!isDeskScreen(screen) && <UnknownScreen />}
 		</Shell>
 	)
 }

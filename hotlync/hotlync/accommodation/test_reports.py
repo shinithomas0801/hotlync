@@ -116,6 +116,7 @@ class TestAccommodationReport(IntegrationTestCase):
 		self.assertEqual(empty["transfers"], [])
 		self.assertEqual(empty["buildings"], [])
 		self.assertEqual(empty["pending"], [])
+		self.assertEqual(empty["pending_count"], 0)
 		self.assertEqual(empty["arrivals"], [])
 		self.assertEqual(empty["departures"], [])
 		with self.assertRaises(frappe.PermissionError) as caught:
@@ -149,6 +150,10 @@ class TestAccommodationReport(IntegrationTestCase):
 		)
 		self.assertEqual(_names(report["pending"]), {draft["name"]})
 		self.assertEqual(len(report["pending"]), 1)
+		self.assertEqual(report["pending_count"], 1)
+		shown = set(report["pending"][0].keys())
+		self.assertNotIn("password", shown)
+		self.assertNotIn("date_of_birth", shown)
 		self.assertNotIn(opened["name"], _names(report["pending"]))
 		self.assertEqual(_names(report["arrivals"]), {opened["name"]})
 		self.assertEqual(len(report["arrivals"]), report["check_ins_today"])
@@ -186,6 +191,12 @@ class TestAccommodationReport(IntegrationTestCase):
 		if frappe.db.exists("User", "staff@hotlync.local"):
 			frappe.set_user("staff@hotlync.local")
 			self.assertRaises(frappe.PermissionError, get_accommodation_report)
+
+	def test_guest_cannot_read_the_occupancy_report(self):
+		frappe.set_user("Guest")
+		with self.assertRaises(frappe.AuthenticationError) as caught:
+			get_accommodation_report()
+		self.assertEqual(str(caught.exception), "Login required")
 
 
 def _same_counts(test, report, counts):

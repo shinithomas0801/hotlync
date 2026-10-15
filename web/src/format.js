@@ -15,6 +15,11 @@ export function greeting (date) {
 	return 'Good evening'
 }
 
+export function screenIdFromHash (hash) {
+	const id = String(hash || '').replace(/^#/, '')
+	return id || 'dashboard'
+}
+
 export function isStaffSession (session) {
 	const roles = session?.roles || []
 	const desk = ['System Manager', 'Accommodation Admin', 'Accommodation Manager']
@@ -40,14 +45,18 @@ export function friendlyName (user) {
 		.replace(/\b\w/g, (letter) => letter.toUpperCase())
 }
 
-export function roleLabel (user) {
-	if (user === 'Administrator') {
+export function roleLabel (user, roles) {
+	const names = roles || []
+	if (user === 'Administrator' || names.includes('System Manager')) {
 		return 'System Manager'
 	}
-	if (user === 'admin@hotlync.local') {
+	if (names.includes('Accommodation Admin')) {
 		return 'Accommodation Admin'
 	}
-	if (user === 'staff@hotlync.local') {
+	if (names.includes('Accommodation Manager')) {
+		return 'Accommodation Manager'
+	}
+	if (names.includes('Staff')) {
 		return 'Staff'
 	}
 	return 'Signed in'

@@ -82,6 +82,7 @@ export function StatusPill ({ status }) {
 		Closed: 'bg-slate-100 text-slate-500',
 		Issued: 'bg-violet-50 text-violet-700',
 		Lost: 'bg-rose-50 text-rose-600',
+		Reported: 'bg-sky-50 text-sky-700',
 		Damaged: 'bg-amber-50 text-amber-700',
 		Replaced: 'bg-slate-100 text-slate-600',
 		Decommissioned: 'bg-slate-100 text-slate-500',

@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build"
+    "build": "vite build",
+    "test": "node --test src/format.test.js"
   },
   "dependencies": {
     "react": "^19.1.0",

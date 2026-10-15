@@ -20,6 +20,7 @@ export function Dashboard ({ user, version, onOpen }) {
 	const [error, setError] = useState('')
 	const [showAll, setShowAll] = useState(false)
 	const [propertyId, setPropertyId] = useState('')
+	const [attempt, setAttempt] = useState(0)
 	const [now, setNow] = useState(() => new Date())
 
 	useEffect(() => {
@@ -55,13 +56,18 @@ export function Dashboard ({ user, version, onOpen }) {
 		return () => {
 			active = false
 		}
-	}, [version, propertyId])
+	}, [version, propertyId, attempt])
 
 	if (error) {
 		return (
-			<div className="rounded-2xl border border-rose-100 bg-white p-6 text-sm text-rose-700">
-				{error}
-			</div>
+			<LoadError
+				message={error}
+				onRetry={() => {
+					setError('')
+					setCounts(null)
+					setAttempt((value) => value + 1)
+				}}
+			/>
 		)
 	}
 	if (!counts) {
@@ -101,6 +107,7 @@ export function Dashboard ({ user, version, onOpen }) {
 				<div className="flex items-center gap-2">
 					{tree.length > 1 && (
 						<select
+							aria-label="Property"
 							value={propertyId}
 							onChange={(event) => setPropertyId(event.target.value)}
 							className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm"
@@ -298,29 +305,45 @@ export function Dashboard ({ user, version, onOpen }) {
 export function Occupancy ({ version }) {
 	const [counts, setCounts] = useState(null)
 	const [buildings, setBuildings] = useState([])
+	const [properties, setProperties] = useState([])
+	const [propertyId, setPropertyId] = useState('')
+	const [attempt, setAttempt] = useState(0)
 	const [error, setError] = useState('')
 
 	useEffect(() => {
 		let active = true
-		call('hotlync.api.get_accommodation_report')
-			.then((report) => {
+		Promise.all([
+			call(
+				'hotlync.api.get_accommodation_report',
+				propertyId ? { property: propertyId } : {},
+			),
+			call('hotlync.api.get_accommodation'),
+		])
+			.then(([report, tree]) => {
 				if (!active) {
 					return
 				}
 				setCounts(report)
 				setBuildings(report.buildings || [])
+				setProperties(tree || [])
+				setError('')
 			})
 			.catch((err) => active && setError(err.message))
 		return () => {
 			active = false
 		}
-	}, [version])
+	}, [version, propertyId, attempt])
 
 	if (error) {
 		return (
-			<div className="rounded-2xl border border-rose-100 bg-white p-6 text-sm text-rose-700">
-				{error}
-			</div>
+			<LoadError
+				message={error}
+				onRetry={() => {
+					setError('')
+					setCounts(null)
+					setAttempt((value) => value + 1)
+				}}
+			/>
 		)
 	}
 	if (!counts) {
@@ -328,18 +351,145 @@ export function Occupancy ({ version }) {
 	}
 
 	return (
-		<div className="grid gap-4 lg:grid-cols-2">
-			<Panel title="Occupancy Overview">
-				<Donut
-					occupied={counts.occupied}
-					available={counts.available}
-					maintenance={counts.maintenance}
-					total={counts.total}
-				/>
-			</Panel>
-			<Panel title="Occupancy by Building">
-				<BuildingBars buildings={buildings} />
-			</Panel>
+		<div className="space-y-4">
+			<div className="flex flex-wrap items-end justify-between gap-3">
+				<div>
+					<h1 className="text-2xl font-semibold text-slate-900">Occupancy report</h1>
+					<p className="text-sm text-slate-500">
+						Beds in the residences you can open. Arrivals and departures are today.
+						Check-ins and check-outs include every recorded date.
+					</p>
+				</div>
+				{properties.length > 1 && (
+					<select
+						aria-label="Property"
+						value={propertyId}
+						onChange={(event) => setPropertyId(event.target.value)}
+						className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm"
+					>
+						<option value="">All properties</option>
+						{properties.map((item) => (
+							<option key={item.name} value={item.name}>
+								{item.property_name}
+							</option>
+						))}
+					</select>
+				)}
+			</div>
+			<div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+				<Metric icon="bed" tint="bg-blue-50 text-blue-600" label="Total beds" value={counts.total} />
+				<Metric icon="users" tint="bg-emerald-50 text-emerald-600" label="Occupied" value={counts.occupied} />
+				<Metric icon="bed" tint="bg-sky-50 text-sky-600" label="Available" value={counts.available} />
+				<Metric icon="wrench" tint="bg-orange-50 text-orange-500" label="Maintenance" value={counts.maintenance} />
+			</div>
+			<div className="grid gap-4 lg:grid-cols-2">
+				<Panel title="Occupancy Overview">
+					<Donut
+						occupied={counts.occupied}
+						available={counts.available}
+						maintenance={counts.maintenance}
+						total={counts.total}
+					/>
+				</Panel>
+				<Panel title="Occupancy by Building">
+					<BuildingBars buildings={buildings} />
+				</Panel>
+			</div>
+			<div className="grid gap-4 lg:grid-cols-3">
+				<Panel title="Pending allocations">
+					<StayList
+						rows={counts.pending || []}
+						empty="No draft stays are waiting for check-in."
+						total={counts.pending_count}
+					/>
+				</Panel>
+				<Panel title="Arrivals today">
+					<StayList
+						rows={counts.arrivals || []}
+						empty="No check-ins are recorded for today."
+						total={counts.check_ins_today}
+					/>
+				</Panel>
+				<Panel title="Departures today">
+					<StayList
+						rows={counts.departures || []}
+						empty="No check-outs are recorded for today."
+						total={counts.check_outs_today}
+					/>
+				</Panel>
+			</div>
+			<div className="grid gap-4 lg:grid-cols-3">
+				<Panel title="Transfers">
+					<StayList
+						rows={counts.transfers || []}
+						empty="No transferred stays."
+					/>
+				</Panel>
+				<Panel title="Check-ins">
+					<StayList
+						rows={counts.check_ins || []}
+						empty="No check-ins are recorded."
+						dateKey="check_in_date"
+					/>
+				</Panel>
+				<Panel title="Check-outs">
+					<StayList
+						rows={counts.check_outs || []}
+						empty="No check-outs are recorded."
+						dateKey="check_out_date"
+					/>
+				</Panel>
+			</div>
+		</div>
+	)
+}
+
+function LoadError ({ message, onRetry }) {
+	return (
+		<div className="rounded-2xl border border-rose-100 bg-white p-6 text-sm text-rose-700">
+			<p>{message}</p>
+			<button
+				type="button"
+				onClick={onRetry}
+				className="mt-3 min-h-11 rounded-lg border border-rose-200 px-3 font-medium text-rose-800"
+			>
+				Try again
+			</button>
+		</div>
+	)
+}
+
+function StayList ({ rows, empty, total, dateKey }) {
+	if (!rows.length) {
+		return <p className="text-sm text-slate-400">{empty}</p>
+	}
+	return (
+		<div>
+			<ul className="divide-y divide-slate-100">
+				{rows.map((row) => (
+					<li key={row.name} className="py-2.5">
+						<div className="flex items-center justify-between gap-2">
+							<div className="min-w-0">
+								<div className="truncate text-sm font-medium text-slate-800">
+									{row.employee_name}
+								</div>
+								<div className="truncate text-xs text-slate-400">
+									{row.property_name} / {row.room_number} / {row.bed_number}
+								</div>
+								{dateKey && row[dateKey] && (
+									<div className="text-xs text-slate-400">{row[dateKey]}</div>
+								)}
+							</div>
+							<StatusPill status={row.status} />
+						</div>
+					</li>
+				))}
+			</ul>
+			{typeof total === 'number' && total > rows.length && (
+				<p className="mt-2 text-xs text-slate-400">
+					Showing {rows.length} of {total}.
+				</p>
+			)}
 		</div>
 	)
 }

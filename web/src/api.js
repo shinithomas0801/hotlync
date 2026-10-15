@@ -36,6 +36,23 @@ export async function login (usr, pwd) {
 	return sessionData.message
 }
 
+export async function restoreSession () {
+	const response = await fetch(`${API}/api/method/hotlync.api.get_session`, {
+		method: 'GET',
+		credentials: 'include',
+		headers: { Accept: 'application/json' },
+	})
+	if (!response.ok) {
+		return null
+	}
+	const data = await response.json().catch(() => ({}))
+	if (!data.message?.user || data.message.user === 'Guest') {
+		return null
+	}
+	setCsrfToken(data.message.csrf_token)
+	return data.message
+}
+
 export async function call (method, args) {
 	const response = await fetch(`${API}/api/method/${method}`, {
 		method: 'POST',
@@ -46,6 +63,27 @@ export async function call (method, args) {
 			...(csrfToken ? { 'X-Frappe-CSRF-Token': csrfToken } : {}),
 		},
 		body: JSON.stringify(args || {}),
+	})
+	const data = await response.json().catch(() => ({}))
+	if (!response.ok) {
+		throw new Error(readError(data))
+	}
+	return data.message
+}
+
+export async function uploadFoundItemImage (docname, file) {
+	const body = new FormData()
+	body.append('file', file)
+	body.append('doctype', 'Found Item')
+	body.append('docname', docname)
+	body.append('fieldname', 'image')
+	body.append('is_private', '1')
+	body.append('method', 'hotlync.api.attach_found_item_image')
+	const response = await fetch(`${API}/api/method/upload_file`, {
+		method: 'POST',
+		credentials: 'include',
+		headers: csrfToken ? { 'X-Frappe-CSRF-Token': csrfToken } : {},
+		body,
 	})
 	const data = await response.json().catch(() => ({}))
 	if (!response.ok) {

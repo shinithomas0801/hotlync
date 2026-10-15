@@ -31,8 +31,15 @@ export const NAV = [
 	{ id: 'administration', label: 'Administration', icon: 'settings' },
 ]
 
+export function isDeskScreen (id) {
+	return NAV.some((item) => (
+		item.id === id || item.children?.some((child) => child.id === id)
+	))
+}
+
 export function Shell ({
 	user,
+	roles,
 	screen,
 	query,
 	onQuery,
@@ -45,7 +52,21 @@ export function Shell ({
 	const [helpOpen, setHelpOpen] = useState(false)
 	const [navOpen, setNavOpen] = useState(false)
 	const name = friendlyName(user)
-	const role = roleLabel(user)
+	const role = roleLabel(user, roles)
+
+	useEffect(() => {
+		if (!menuOpen && !helpOpen) {
+			return undefined
+		}
+		function onKey (event) {
+			if (event.key === 'Escape') {
+				setMenuOpen(false)
+				setHelpOpen(false)
+			}
+		}
+		window.addEventListener('keydown', onKey)
+		return () => window.removeEventListener('keydown', onKey)
+	}, [menuOpen, helpOpen])
 
 	useEffect(() => {
 		const parent = NAV.find((item) =>
@@ -163,9 +184,10 @@ export function Shell ({
 					>
 						<Icon name="menu" className="h-5 w-5" />
 					</button>
-					<label className="relative flex h-10 min-w-0 max-w-xl flex-1 items-center gap-2 rounded-full border border-slate-200 bg-[#F4F7FB] px-4">
+					<label className="relative flex h-10 min-w-0 max-w-xl flex-1 items-center gap-2 rounded-full border border-slate-200 bg-[#F4F7FB] px-4 focus-within:border-blue-500">
 						<Icon name="search" className="h-4 w-4 text-slate-400" />
 						<input
+							aria-label="Search"
 							value={query}
 							onChange={(event) => {
 								onQuery(event.target.value)
@@ -196,7 +218,9 @@ export function Shell ({
 						<button
 							type="button"
 							onClick={() => setMenuOpen((open) => !open)}
-							className="flex items-center gap-3 rounded-full py-1 pr-1 pl-2 hover:bg-slate-50"
+							aria-label="Account menu"
+							aria-expanded={menuOpen}
+							className="flex min-h-11 items-center gap-3 rounded-full py-1 pr-1 pl-2 hover:bg-slate-50"
 						>
 							<span className="hidden text-right leading-tight sm:block">
 								<span className="block text-sm font-semibold text-slate-800">

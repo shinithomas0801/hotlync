@@ -262,6 +262,7 @@ def get_accommodation_report(property=None):
 		"maintenance": counts["maintenance"],
 		"check_ins_today": _dated_count(selected, "check_in_date", today),
 		"check_outs_today": _dated_count(selected, "check_out_date", today),
+		"pending_count": _status_count(selected, "Draft"),
 		"buildings": _building_counts(selected),
 		"active": _stay_rows(
 			selected,
@@ -577,6 +578,15 @@ def _building_counts(property_names):
 	return [buildings[name] for name in order]
 
 
+def _status_count(property_names, status):
+	if property_names is not None and not property_names:
+		return 0
+	filters = {"status": status}
+	if property_names is not None:
+		filters["property"] = ["in", property_names]
+	return frappe.db.count("Accommodation Allocation", filters)
+
+
 def _dated_count(property_names, field, day):
 	if property_names is not None and not property_names:
 		return 0
@@ -797,6 +807,49 @@ def attach_ticket_photo():
 	)
 
 	return attach_photo()
+
+
+@frappe.whitelist()
+def get_found_items(name=None):
+	from hotlync.accommodation.doctype.found_item.found_item import (
+		get_found_items as list_found_items,
+	)
+
+	return list_found_items(name=name)
+
+
+@frappe.whitelist()
+def register_found_item(
+	description=None,
+	property=None,
+	found_location=None,
+	found_on=None,
+	category=None,
+	room=None,
+	custodian=None,
+):
+	from hotlync.accommodation.doctype.found_item.found_item import (
+		register_found_item as register,
+	)
+
+	return register(
+		description=description,
+		property=property,
+		found_location=found_location,
+		found_on=found_on,
+		category=category,
+		room=room,
+		custodian=custodian,
+	)
+
+
+@frappe.whitelist()
+def attach_found_item_image():
+	from hotlync.accommodation.doctype.found_item.found_item import (
+		attach_found_item_image as attach_image,
+	)
+
+	return attach_image()
 
 
 @frappe.whitelist()

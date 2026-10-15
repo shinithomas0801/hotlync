@@ -5,14 +5,29 @@ import { Icon } from '../icons.jsx'
 import { Field, Notice, PageIntro, PrimaryButton, inputClass } from '../ui.jsx'
 
 const later = {
-	maintenance: ['Maintenance', 'wrench', 'Work orders are a later phase. Bed status can already be Maintenance, and allocation to those beds is rejected.'],
 	facilities: ['Facilities Booking', 'calendar', 'Courts, rooms, and other facility bookings are a later phase.'],
-	keys: ['Keys & Access', 'key', 'Key issue and return are a later phase.'],
 	inventory: ['Inventory', 'box', 'Stores and stock are a later phase.'],
 	lost: ['Lost & Found', 'tag', 'Lost and found is a later phase.'],
 	transport: ['Transport', 'bus', 'Bus schedules are a later phase.'],
-	requests: ['Requests & Forms', 'file', 'Room change, visitor, family, and exit forms are a later phase. Staff allocation is live under Accommodation.'],
 	communication: ['Communication', 'chat', 'WhatsApp, email, and broadcasts are a later phase.'],
+}
+
+export function UnknownScreen () {
+	return (
+		<div>
+			<PageIntro
+				icon={<Icon name="file" className="h-5 w-5" />}
+				title="Page not available"
+				subtitle="That address is not a screen on this desk."
+			/>
+			<section className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center shadow-sm">
+				<p className="text-sm font-medium text-slate-700">Page not available</p>
+				<p className="mt-1 text-sm text-slate-400">
+					Use the menu to open a screen that is already on this desk.
+				</p>
+			</section>
+		</div>
+	)
 }
 
 export function LaterModule ({ id }) {
@@ -112,7 +127,11 @@ export function Administration ({ roles, onChanged }) {
 			<PageIntro
 				icon={<Icon name="settings" className="h-5 w-5" />}
 				title="Administration"
-				subtitle="Create a login, set Staff, Accommodation Manager, or Accommodation Admin, and assign a manager to a residence. Property scope is provisional."
+				subtitle={
+					group
+						? 'Create a login, set Staff, Accommodation Manager, or Accommodation Admin, and assign a manager to a residence. Property scope is provisional.'
+						: 'An Accommodation Admin creates logins and assigns residences. This login can read the roles below.'
+				}
 			/>
 			<div className="grid gap-4 md:grid-cols-3">
 				{rolesCopy.map(([title, text]) => (
@@ -311,6 +330,7 @@ function UserCard ({ user, roles, properties, busy, onRun }) {
 			</div>
 			<div className="mt-3 flex flex-wrap gap-2">
 				<select
+					aria-label="Role"
 					className={fieldClass}
 					value={role}
 					onChange={(event) => setRole(event.target.value)}
@@ -363,6 +383,7 @@ function UserCard ({ user, roles, properties, busy, onRun }) {
 					))}
 					<div className="flex flex-wrap gap-2">
 						<select
+							aria-label="Residence"
 							className={fieldClass}
 							value={property}
 							onChange={(event) => setProperty(event.target.value)}
